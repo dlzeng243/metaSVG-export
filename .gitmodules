@@ -1,0 +1,3 @@
+[submodule "python/svgpathtools"]
+	path = python/svgpathtools
+	url = https://github.com/mathandy/svgpathtools.git
