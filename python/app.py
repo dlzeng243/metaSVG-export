@@ -1,11 +1,4 @@
 '''
-app
-===
-
-Demos basic usage of the Onshape API
-'''
-
-'''
 First time:
 add creds.json to python folder:
 
@@ -63,7 +56,9 @@ https://forum.onshape.com/discussion/7544/execute-featurescript-using-api-and-py
 
 from apikey.client import Client
 import pprint
+import numpy as np
 import svgwrite
+
 
 # stacks to choose from
 stacks = {
@@ -77,26 +72,74 @@ did = raw_input('Enter document ID: ')
 wid = raw_input('Enter workspace ID: ')
 eid = raw_input('Enter element ID: ')
 '''
+# for convenience sake, will use one of my onshape documents as testing
 did = "342cee7fe5c2effe369c8dc3"
 wid = "1362f0d767136d7d96f8c33a"
 eid = "7d2020bde3f6f951e141da13"
 
-# get the document details
-# details = c.get_document(did)
-# print 'Document name: ' + details.json()['name']
+# get the body details
 parts = c.get_parts(did, wid)
 p = parts.json()
+body_list = []
 for part in p:
-    eid = part["elementId"]
     pid = part["partId"]
     body = c.get_body_details(did, wid, eid, pid)
-    pprint.pprint(body.json())
+    body = body.json()
+    body_list.append(body["bodies"])
 
+# get a list of edges for each body
+edge_list = []
+for body in body_list:
+    face_list = []
+    for face in body[0]["faces"]:
+        if face["surface"]["normal"] == [0.0, 0.0, 1.0] or face["surface"]["normal"] == [0.0, 0.0, -1.0]:
+            coedges = face["loops"][0]["coedges"]
+            for edge in coedges:
+                edgeId = edge["edgeId"]
+                for e in body[0]["edges"]:
+                    if e["id"] == edgeId:
+                        if edge["orientation"]:
+                            face_list.append([np.array(e["geometry"]["startPoint"][:2]) * 39.3701, np.array(e["geometry"]["endPoint"][:2]) * 39.3701])
+                        else:
+                            face_list.append([np.array(e["geometry"]["endPoint"][:2]) * 39.3701, np.array(e["geometry"]["startPoint"][:2]) * 39.3701])
+            break
+    edge_list.append(face_list)
+
+# now we have a list of edges for each body
+# need to get coordinates for each 
+
+coords_list = []
+for i in range(len(edge_list)):
+    body = body_list[i]
+    edges = edge_list[i]
+    order_coords = [edges[0]]
+    for j in range(len(edges)):
+        for k in range(len(edges)):
+            if np.array_equal(order_coords[j][1], edges[k][0]):
+                order_coords.append(edges[k])
+                continue
+    coords_list.append(order_coords[:len(order_coords) - 1])
+'''
+for i in range(len(coords_list)):
+    for j in range(len(coords_list[i])):
+        print("start " + str(coords_list[i][j][0]) + " end " + str(coords_list[i][j][1]) + "\n")'''
 
 dwg = svgwrite.Drawing('test.svg', profile='tiny')
-dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
-dwg.add(dwg.text('Test', insert=(0, 0.2)))
+for i in range(len(coords_list)):
+    coords = coords_list[i]
+    (a,b) = coords[0][0]
+    path = "M " + str(a) + "," + str(b) + " "
+    for j in range(1,len(coords) + 1):
+        (a,b) = coords[j % len(coords)][0]
+        path += "L " + str(a) + "," + str(b) + " "
+    path += "z"
+    print(path)
+    dwg.add(dwg.path(path, stroke="#000", fill="none", stroke_width=0.01))
 dwg.save()
+
+# coords = [(np.array([1,2]), np.array([1,4])), (np.array([1,4]), np.array([3,4])), (np.array([3,2]), np.array([1,2])), (np.array([3,4]), np.array([3,2]))]
+
+
 
 
 '''
@@ -112,3 +155,22 @@ d["sourceMicroversion"] = f["sourceMicroversion"]
 d["updateSuppressionAttributes"] = True
 c.update_feature(did, wid, eid, d)'''
 
+
+'''
+idea:
+Go through each part
+Find the common height
+Make a auto layout feature with the common height
+Call it on the thing
+Get updated body details
+Get all faces with a normal of 001 or 00-1
+Then we can get the lengths of each edge of the faces
+then use svgpathtools to make the svg
+
+
+ALL MEASUREMENTS IN BODY DETAILS ARE IN METERS
+
+
+questions:
+is it safe to assume that the "height" of all the parts will be the same - so when they laser cut, it'll be uniform?
+'''
