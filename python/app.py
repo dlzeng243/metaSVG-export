@@ -18,6 +18,16 @@ run python2 app.py
 '''
 
 '''
+ASSUMPTIONS SO FAR:
+Use laser joint featurescript
+All parts will be the same height (because laser cutting the same material)
+All parts will be polygonal
+Intersection between base and tab will be a "good fit" (meaning the side lengths will match up)
+one laser joint feature for now
+
+'''
+
+'''
 IDEA:
 Get feature list (have users raw input did, wid, and eid)
 // read kerf csv (I don't think we need to do this, we just need to make the metasvg)
@@ -35,6 +45,8 @@ PARTS - get parts (get parts id)
 
 PARTSTUDIO - get features (get laser cut info)
 PARTSTUDIO - update feature (suppress)
+PARTSTUDIO - add feature (add the autolayout)
+PARTSTUDIO - delete feature
 
 ELEMENTS - get configuration?
 
@@ -72,12 +84,109 @@ did = raw_input('Enter document ID: ')
 wid = raw_input('Enter workspace ID: ')
 eid = raw_input('Enter element ID: ')
 '''
+
 # for convenience sake, will use one of my onshape documents as testing
+
 did = "342cee7fe5c2effe369c8dc3"
 wid = "1362f0d767136d7d96f8c33a"
 eid = "7d2020bde3f6f951e141da13"
+'''
 
-# get the body details
+did = "a793a3e438b3a8a7859e3244"
+wid = "d66b8b4a9bb905cb4090461b"
+eid = "bdaa56060d3b9fbbd545f5e7"
+'''
+
+features = c.get_features(did, wid, eid)
+f = features.json()
+
+# suppress all of the laser joints
+features = c.get_features(did, wid, eid)
+f = features.json()
+lasers = []
+for i in range(len(f["features"])):
+    if f["features"][i]["message"]["featureType"] == "laserJoint":
+        lasers.append(i)
+updates = []
+for i in range(len(lasers)):
+    f["features"][lasers[i]]["message"]["suppressed"] = True
+    updates.append(f["features"][lasers[i]])
+d = dict()
+d["features"] = updates
+d["serializationVersion"] = f["serializationVersion"]
+d["sourceMicroversion"] = f["sourceMicroversion"]
+d["updateSuppressionAttributes"] = True
+c.update_feature(did, wid, eid, d)
+
+# get the body details to find length to autolayout
+parts = c.get_parts(did, wid)
+p = parts.json()
+body_list = []
+for part in p:
+    pid = part["partId"]
+    body = c.get_body_details(did, wid, eid, pid)
+    body = body.json()
+    body_list.append(body["bodies"])
+
+# Add autolayout feature with specified length
+d = dict()
+alf = {u'message': {u'featureType': u'autolayout',
+        u'hasUserCode': False,
+        u'name': u'Auto Layout 1',
+        u'namespace': u'df0ea3e290860f984f4075197::vc2e512d1951a9eda143a5a40::e43c995e59341bb62975a36b8::m487f3f81e149ec9cd19f43e7',
+        u'parameters': [{u'message': {u'expression': u'0.12 in',
+        u'hasUserCode': False,
+        u'isInteger': False,
+        u'parameterId': u'thickness',
+        u'units': u'',
+        u'value': 0.0},
+        u'type': 147,
+        u'typeName': u'BTMParameterQuantity'},
+        {u'message': {u'expression': u'60 in',
+        u'hasUserCode': False,
+        u'isInteger': False,
+        u'parameterId': u'width',
+        u'units': u'',
+        u'value': 0.0},
+        u'type': 147,
+        u'typeName': u'BTMParameterQuantity'},
+        {u'message': {u'expression': u'100 in',
+        u'hasUserCode': False,
+        u'isInteger': False,
+        u'parameterId': u'height',
+        u'units': u'',
+        u'value': 0.0},
+        u'type': 147,
+        u'typeName': u'BTMParameterQuantity'},
+        {u'message': {u'expression': u'0.1 in',
+        u'hasUserCode': False,
+        u'isInteger': False,
+        u'parameterId': u'spacing',
+        u'units': u'',
+        u'value': 0.0},
+        u'type': 147,
+        u'typeName': u'BTMParameterQuantity'},
+        {u'message': {u'hasUserCode': False,
+        u'parameterId': u'showSheets',
+        u'value': False},
+        u'type': 144,
+        u'typeName': u'BTMParameterBoolean'}],
+        u'returnAfterSubfeatures': False,
+        u'subFeatures': [],
+        u'suppressed': False,
+        u'suppressionState': {u'type': 0}},
+        u'type': 134,
+        u'typeName': u'BTMFeature'}
+val = 0.3
+d["feature"] = alf
+d["serializationVersion"] = f["serializationVersion"]
+d["sourceMicroversion"] = f["sourceMicroversion"]
+d["feature"]["message"]["parameters"][0]["message"]["expression"] = unicode(str(val) + " in")
+
+c.add_feature(did, wid, eid, d)
+
+
+# get the body details after adding in the autolayout feature
 parts = c.get_parts(did, wid)
 p = parts.json()
 body_list = []
@@ -114,8 +223,10 @@ for i in range(len(edge_list)):
     edges = edge_list[i]
     order_coords = [edges[0]]
     for j in range(len(edges)):
+        print(order_coords[j])
         for k in range(len(edges)):
-            if np.array_equal(order_coords[j][1], edges[k][0]):
+            print(edges[k])
+            if np.allclose(order_coords[j][1], edges[k][0]):
                 order_coords.append(edges[k])
                 continue
     coords_list.append(order_coords[:len(order_coords) - 1])
@@ -142,19 +253,6 @@ dwg.save()
 
 
 
-'''
-features = c.get_features(did, wid, eid)
-f = features.json()
-f["features"][4]["message"]["suppressed"] = True
-asdf = []
-asdf.append(f["features"][4])
-d = dict()
-d["features"] = asdf
-d["serializationVersion"] = f["serializationVersion"]
-d["sourceMicroversion"] = f["sourceMicroversion"]
-d["updateSuppressionAttributes"] = True
-c.update_feature(did, wid, eid, d)'''
-
 
 '''
 idea:
@@ -169,8 +267,11 @@ then use svgpathtools to make the svg
 
 
 ALL MEASUREMENTS IN BODY DETAILS ARE IN METERS
-
+    Find a way to rescale this
 
 questions:
 is it safe to assume that the "height" of all the parts will be the same - so when they laser cut, it'll be uniform?
+    will be one of the assumptions im using (might change later)
+
+extract_metadata -> look at the metadata format
 '''

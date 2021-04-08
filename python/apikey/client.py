@@ -196,6 +196,21 @@ class Client():
 
         return self._api.request('post', '/api/partstudios/d/' + did + '/w/' + wid + '/e/' + eid + '/features/updates', body=payload)
 
+    def add_feature(self, did, wid, eid, payload):
+        '''
+        Updates a feature for specified document / workspace / part studio.
+
+        Args:
+            - did (str): Document ID
+            - wid (str): Workspace ID
+            - eid (str): Element ID
+
+        Returns:
+            - requests.Response: Onshape response data
+        '''
+
+        return self._api.request('post', '/api/partstudios/d/' + did + '/w/' + wid + '/e/' + eid + '/features', body=payload)
+
     def get_partstudio_tessellatededges(self, did, wid, eid):
         '''
         Gets the tessellation of the edges of all parts in a part studio.
