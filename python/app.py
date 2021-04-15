@@ -20,7 +20,7 @@ run python2 app.py
 '''
 ASSUMPTIONS SO FAR:
 Use laser joint featurescript
-All parts will be the same height (because laser cutting the same material)
+All parts will have the same height (because laser cutting the same material)
 All parts will be polygonal
 Intersection between base and tab will be a "good fit" (meaning the side lengths will match up)
 one laser joint feature for now
@@ -67,10 +67,14 @@ https://forum.onshape.com/discussion/7544/execute-featurescript-using-api-and-py
 
 
 from apikey.client import Client
+from collections import Counter
 import pprint
 import numpy as np
-import svgwrite
+import xml.etree.ElementTree as ET
+import json
 
+epsilon = 0.000001
+constant = 393.701
 
 # stacks to choose from
 stacks = {
@@ -87,11 +91,13 @@ eid = raw_input('Enter element ID: ')
 
 # for convenience sake, will use one of my onshape documents as testing
 
+# document 1
 did = "342cee7fe5c2effe369c8dc3"
 wid = "1362f0d767136d7d96f8c33a"
 eid = "7d2020bde3f6f951e141da13"
-'''
 
+# document test1
+'''
 did = "a793a3e438b3a8a7859e3244"
 wid = "d66b8b4a9bb905cb4090461b"
 eid = "bdaa56060d3b9fbbd545f5e7"
@@ -99,6 +105,7 @@ eid = "bdaa56060d3b9fbbd545f5e7"
 
 features = c.get_features(did, wid, eid)
 f = features.json()
+
 
 # suppress all of the laser joints
 features = c.get_features(did, wid, eid)
@@ -128,13 +135,25 @@ for part in p:
     body = body.json()
     body_list.append(body["bodies"])
 
+length_list = []
+for body in body_list:
+    length_set = set()
+    for edge in body[0]["edges"]:
+        length_set.add(edge["geometry"]["length"])
+    length_list.append(length_set)
+for i in range(1, len(length_list)):
+    length_list[0].intersection_update(length_list[i])
+if len(length_list[0]) == 0:
+    exit
+sort_lengths = sorted(list(length_list[0]))
+
 # Add autolayout feature with specified length
 d = dict()
 alf = {u'message': {u'featureType': u'autolayout',
         u'hasUserCode': False,
         u'name': u'Auto Layout 1',
         u'namespace': u'df0ea3e290860f984f4075197::vc2e512d1951a9eda143a5a40::e43c995e59341bb62975a36b8::m487f3f81e149ec9cd19f43e7',
-        u'parameters': [{u'message': {u'expression': u'0.12 in',
+        u'parameters': [{u'message': {u'expression': u'0.0 in',
         u'hasUserCode': False,
         u'isInteger': False,
         u'parameterId': u'thickness',
@@ -177,14 +196,12 @@ alf = {u'message': {u'featureType': u'autolayout',
         u'suppressionState': {u'type': 0}},
         u'type': 134,
         u'typeName': u'BTMFeature'}
-val = 0.3
 d["feature"] = alf
 d["serializationVersion"] = f["serializationVersion"]
 d["sourceMicroversion"] = f["sourceMicroversion"]
-d["feature"]["message"]["parameters"][0]["message"]["expression"] = unicode(str(val) + " in")
+d["feature"]["message"]["parameters"][0]["message"]["expression"] = unicode(str(sort_lengths[0]) + " m")
 
 c.add_feature(did, wid, eid, d)
-
 
 # get the body details after adding in the autolayout feature
 parts = c.get_parts(did, wid)
@@ -207,10 +224,12 @@ for body in body_list:
                 edgeId = edge["edgeId"]
                 for e in body[0]["edges"]:
                     if e["id"] == edgeId:
+                        arr1 = np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4)
+                        arr2 = np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4)
                         if edge["orientation"]:
-                            face_list.append([np.array(e["geometry"]["startPoint"][:2]) * 39.3701, np.array(e["geometry"]["endPoint"][:2]) * 39.3701])
+                            face_list.append([arr1, arr2])
                         else:
-                            face_list.append([np.array(e["geometry"]["endPoint"][:2]) * 39.3701, np.array(e["geometry"]["startPoint"][:2]) * 39.3701])
+                            face_list.append([arr2, arr1])
             break
     edge_list.append(face_list)
 
@@ -223,9 +242,7 @@ for i in range(len(edge_list)):
     edges = edge_list[i]
     order_coords = [edges[0]]
     for j in range(len(edges)):
-        print(order_coords[j])
         for k in range(len(edges)):
-            print(edges[k])
             if np.allclose(order_coords[j][1], edges[k][0]):
                 order_coords.append(edges[k])
                 continue
@@ -235,7 +252,9 @@ for i in range(len(coords_list)):
     for j in range(len(coords_list[i])):
         print("start " + str(coords_list[i][j][0]) + " end " + str(coords_list[i][j][1]) + "\n")'''
 
-dwg = svgwrite.Drawing('test.svg', profile='tiny')
+#change viewbox if need to
+doc = ET.Element('svg', style="fill:#00ff00;fill-opacity:0.25;stroke:none", viewBox="0 0 360 480", xmlns="http://www.w3.org/2000/svg")
+
 for i in range(len(coords_list)):
     coords = coords_list[i]
     (a,b) = coords[0][0]
@@ -244,15 +263,17 @@ for i in range(len(coords_list)):
         (a,b) = coords[j % len(coords)][0]
         path += "L " + str(a) + "," + str(b) + " "
     path += "z"
-    print(path)
-    dwg.add(dwg.path(path, stroke="#000", fill="none", stroke_width=0.01))
-dwg.save()
+    face = "face" + str(i)
+    sub = ET.SubElement(doc, "g")
+    sub.attrib["data-name"] = face
+    sub.attrib["id"] = face
+    p = ET.SubElement(sub, "path")
+    p.attrib["d"] = path
+f = open('sample.svg', 'w')
+f.write(ET.tostring(doc))
+f.close()
 
 # coords = [(np.array([1,2]), np.array([1,4])), (np.array([1,4]), np.array([3,4])), (np.array([3,2]), np.array([1,2])), (np.array([3,4]), np.array([3,2]))]
-
-
-
-
 
 '''
 idea:
@@ -275,3 +296,4 @@ is it safe to assume that the "height" of all the parts will be the same - so wh
 
 extract_metadata -> look at the metadata format
 '''
+

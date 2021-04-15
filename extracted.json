@@ -1,0 +1,104 @@
+{
+    "attrib": {
+        "viewBox": "0 0 260 120",
+        "xmlns": "http://www.w3.org/2000/svg",
+        "style": "fill:#00ff00;fill-opacity:0.25;stroke:none"
+    },
+    "edge_data": {
+        "edges": [
+            {
+                "d": "M 150.0 10.0 L 250.0 10.0",
+                "edge": 1,
+                "face": "face1"
+            },
+            {
+                "d": "M 250.0 10.0 L 250.0 110.0",
+                "edge": 2,
+                "face": "face1"
+            },
+            {
+                "d": "M 250.0 110.0 L 150.0 110.0",
+                "edge": 3,
+                "face": "face1"
+            },
+            {
+                "d": "M 150.0 110.0 L 150.0 10.0",
+                "edge": 4,
+                "face": "face1"
+            },
+            {
+                "d": "M 10.0 10.0 L 110.0 10.0",
+                "edge": 5,
+                "face": "face2"
+            },
+            {
+                "d": "M 110.0 10.0 L 110.0 110.0",
+                "edge": 6,
+                "face": "face2"
+            },
+            {
+                "d": "M 110.0 110.0 L 10.0 110.0",
+                "edge": 7,
+                "face": "face2"
+            },
+            {
+                "d": "M 10.0 110.0 L 10.0 10.0",
+                "edge": 8,
+                "face": "face2"
+            }
+        ],
+        "viewBox": "0 0 260 120"
+    },
+    "joint_index": 2,
+    "joints": {
+        "Joint1": {
+            "edge_a": {
+                "d": "M 150.0 10.0 L 250.0 10.0",
+                "edge": 1,
+                "face": "face1"
+            },
+            "edge_b": {
+                "d": "M 10.0 10.0 L 110.0 10.0",
+                "edge": 5,
+                "face": "face2"
+            },
+            "joint_parameters": {
+                "joint_type": "Box",
+                "fit": "Clearance",
+                "tabsize": 10,
+                "tabspace": 20,
+                "tabnum": 2,
+                "boltsize": "M2.5",
+                "boltspace": 5,
+                "boltnum": 2,
+                "boltlength": 10
+            }
+        }
+    },
+    "tree": {
+        "face1": {
+            "Cuts": {
+                "paths": [
+                    "M 170.0,60.0 L 170.0,40.0 L 190.0,40.0 L 190.0,60.0 A 26.0,26.0 0.0 0,1 170.0,60.0"
+                ]
+            },
+            "Perimeter": {
+                "paths": [
+                    "M 150.0,10.0 L 250.0,10.0 L 250.0,110.0 L 150.0,110.0 L 150.0,10.0"
+                ]
+            }
+        },
+        "face2": {
+            "Cuts": {
+                "paths": [
+                    "M 40.0,60.0 A 20.0,20.0 0.0 1,0 80.0,60.0 A 20.0,20.0 0.0 1,0 40.0,60.0"
+                ]
+            },
+            "Perimeter": {
+                "paths": [
+                    "M 10.0,10.0 L 110.0,10.0 L 110.0,110.0 L 10.0,110.0 L 10.0,10.0"
+                ]
+            }
+        }
+    }
+}
