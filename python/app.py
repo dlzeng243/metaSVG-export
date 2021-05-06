@@ -23,7 +23,7 @@ Use laser joint featurescript
 All parts will have the same height (because laser cutting the same material)
 All parts will be polygonal
 Intersection between base and tab will be a "good fit" (meaning the side lengths will match up)
-one laser joint feature for now
+no cuts on the inside
 
 '''
 
@@ -36,6 +36,21 @@ Check if they have used the laser joint feature
 If so, then need to figure out how to keep the laser joint information + also lay out the parts
     Can get part details with get_body_details on each part in the parts list
 From here, we need to make it an SVG somehow, and then attach all the laser joint information as metadata
+
+idea:
+Go through each part
+Find the common height
+Make a auto layout feature with the common height
+Call it on the thing
+Get updated body details
+Get all faces with a normal of 001 or 00-1
+Then we can get the lengths of each edge of the faces
+then use svgpathtools to make the svg
+
+
+ALL MEASUREMENTS IN BODY DETAILS ARE IN METERS
+    Find a way to rescale this
+
 '''
 
 '''
@@ -62,7 +77,8 @@ check if the body details are different with and without the laser cut (they are
 '''
 https://cad.onshape.com/FsDoc/tutorials/create-a-slot-feature.html
 https://forum.onshape.com/discussion/5528/evaluate-featurescript-request-returns-empty-btfsvaluearray-instead-of-face
-https://forum.onshape.com/discussion/7544/execute-featurescript-using-api-and-python'''
+https://forum.onshape.com/discussion/7544/execute-featurescript-using-api-and-python
+'''
 
 
 
@@ -74,7 +90,7 @@ import xml.etree.ElementTree as ET
 import json
 
 epsilon = 0.000001
-constant = 393.701
+constant = 3779.5
 
 # stacks to choose from
 stacks = {
@@ -83,6 +99,7 @@ stacks = {
 
 # create instance of the onshape client; change key to test on another stack
 c = Client(stack=stacks['cad'], logging=True)
+
 '''
 did = raw_input('Enter document ID: ')
 wid = raw_input('Enter workspace ID: ')
@@ -92,9 +109,11 @@ eid = raw_input('Enter element ID: ')
 # for convenience sake, will use one of my onshape documents as testing
 
 # document 1
+
 did = "342cee7fe5c2effe369c8dc3"
 wid = "1362f0d767136d7d96f8c33a"
 eid = "7d2020bde3f6f951e141da13"
+
 
 # document test1
 '''
@@ -103,27 +122,16 @@ wid = "d66b8b4a9bb905cb4090461b"
 eid = "bdaa56060d3b9fbbd545f5e7"
 '''
 
-features = c.get_features(did, wid, eid)
-f = features.json()
+# document hexagon
+'''
+did = "f64e517b60b7be5b9e096610"
+wid = "8819fa3e5a42943b4f6d72b2"
+eid = "37cd35df347f894e04bab4c7"
+'''
 
 
-# suppress all of the laser joints
 features = c.get_features(did, wid, eid)
 f = features.json()
-lasers = []
-for i in range(len(f["features"])):
-    if f["features"][i]["message"]["featureType"] == "laserJoint":
-        lasers.append(i)
-updates = []
-for i in range(len(lasers)):
-    f["features"][lasers[i]]["message"]["suppressed"] = True
-    updates.append(f["features"][lasers[i]])
-d = dict()
-d["features"] = updates
-d["serializationVersion"] = f["serializationVersion"]
-d["sourceMicroversion"] = f["sourceMicroversion"]
-d["updateSuppressionAttributes"] = True
-c.update_feature(did, wid, eid, d)
 
 # get the body details to find length to autolayout
 parts = c.get_parts(did, wid)
@@ -201,7 +209,37 @@ d["serializationVersion"] = f["serializationVersion"]
 d["sourceMicroversion"] = f["sourceMicroversion"]
 d["feature"]["message"]["parameters"][0]["message"]["expression"] = unicode(str(sort_lengths[0]) + " m")
 
-c.add_feature(did, wid, eid, d)
+auto = c.add_feature(did, wid, eid, d)
+autolayout = auto.json()
+
+
+# get parts feature of laser joint + auto layout
+parts = c.get_parts(did, wid)
+p = parts.json()
+bodies = []
+for part in p:
+    pid = part["partId"]
+    body = c.get_body_details(did, wid, eid, pid)
+    body = body.json()
+    bodies.append(body["bodies"])
+
+# suppress all of the laser joints
+features = c.get_features(did, wid, eid)
+f = features.json()
+
+partquery = []
+updates = []
+for i in range(len(f["features"])):
+    if f["features"][i]["message"]["featureType"] == "laserJoint":
+        f["features"][i]["message"]["suppressed"] = True
+        partquery.append(f["features"][i]["message"]["parameters"][3]["message"]["queries"])
+        updates.append(f["features"][i])
+d = dict()
+d["features"] = updates
+d["serializationVersion"] = f["serializationVersion"]
+d["sourceMicroversion"] = f["sourceMicroversion"]
+d["updateSuppressionAttributes"] = True
+c.update_feature(did, wid, eid, d)
 
 # get the body details after adding in the autolayout feature
 parts = c.get_parts(did, wid)
@@ -215,8 +253,12 @@ for part in p:
 
 # get a list of edges for each body
 edge_list = []
+midpoint_list = []
+vertices_list = []
 for body in body_list:
     face_list = []
+    midpoints = []
+    vertices = []
     for face in body[0]["faces"]:
         if face["surface"]["normal"] == [0.0, 0.0, 1.0] or face["surface"]["normal"] == [0.0, 0.0, -1.0]:
             coedges = face["loops"][0]["coedges"]
@@ -228,10 +270,15 @@ for body in body_list:
                         arr2 = np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4)
                         if edge["orientation"]:
                             face_list.append([arr1, arr2])
+                            vertices.append(np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4))
                         else:
                             face_list.append([arr2, arr1])
+                            vertices.append(np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4))
+                        midpoints.append(np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4))
             break
+    midpoint_list.append(midpoints)
     edge_list.append(face_list)
+    vertices_list.append(vertices)
 
 # now we have a list of edges for each body
 # need to get coordinates for each 
@@ -252,48 +299,132 @@ for i in range(len(coords_list)):
     for j in range(len(coords_list[i])):
         print("start " + str(coords_list[i][j][0]) + " end " + str(coords_list[i][j][1]) + "\n")'''
 
-#change viewbox if need to
-doc = ET.Element('svg', style="fill:#00ff00;fill-opacity:0.25;stroke:none", viewBox="0 0 360 480", xmlns="http://www.w3.org/2000/svg")
+i = 0
+for body in bodies:
+    for face in body[0]["faces"]:
+        if face["surface"]["normal"] == [0.0, 0.0, 1.0] or face["surface"]["normal"] == [0.0, 0.0, -1.0]:
+            coedges = face["loops"][0]["coedges"]
+            for edge in coedges:
+                edgeId = edge["edgeId"]
+                for e in body[0]["edges"]:
+                    if e["id"] == edgeId:
+                        mid = np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4)
+                        start = np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4)
+                        for j in range(len(midpoint_list[i])):
+                            mids = midpoint_list[i][j]
+                            if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
+                                midpoint_list[i].pop(j)
+                                break
+                        for j in range(len(vertices_list[i])):
+                            vert = vertices_list[i][j]
+                            if abs(start[0] - vert[0]) < epsilon and abs(start[1] - vert[1]) < epsilon:
+                                vertices_list[i].pop(j)
+                                break
+    i += 1
 
+#change viewbox if need to
+doc = ET.Element('svg', style="fill:none;stroke:#ff0000;stroke-linejoin:round;stroke-width:0.1px;stroke-linecap:round;stroke-opacity:0.5", viewBox="0 0 600 480", xmlns="http://www.w3.org/2000/svg")
+
+d = dict()
+d["attrib"] = {"style" : "fill:none;stroke:#ff0000;stroke-linejoin:round;stroke-width:0.1px;stroke-linecap:round;stroke-opacity:0.5", "viewBox" : "0 0 600 400", "xmlns" : "http://www.w3.org/2000/svg"}
+
+counter = 1
+edges = []
+d["tree"] = dict()
+d["joints"] = dict()
+d["joints"]["Joint1"] = dict()
+length = 0
 for i in range(len(coords_list)):
     coords = coords_list[i]
+
     (a,b) = coords[0][0]
+    face = "face" + str(i+1)
+    d["tree"][face] = dict()
     path = "M " + str(a) + "," + str(b) + " "
+    edge = path
     for j in range(1,len(coords) + 1):
         (a,b) = coords[j % len(coords)][0]
         path += "L " + str(a) + "," + str(b) + " "
-    path += "z"
-    face = "face" + str(i)
+        ej = edge + "L " + str(a) + "," + str(b)
+        edge = "M " + str(a) + "," + str(b) + " "
+
+        # midpoint check
+        mid = np.around((coords[j-1][0] + coords[j-1][1]) / 2, 4)
+        if (len(midpoint_list[i]) == 1):
+            mids = midpoint_list[i][0]
+            if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
+                d["joints"]["Joint1"]["edge_" + chr(i + 97)] = {"d" : ej, "edge" : counter, "face" : face}
+        elif (len(vertices_list[i]) == 2):
+            mids = np.around((vertices_list[i][0] + vertices_list[i][1]) / 2, 4)
+            if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
+                d["joints"]["Joint1"]["edge_" + chr(i + 97)] = {"d" : ej, "edge" : counter, "face" : face}
+                length = np.linalg.norm(vertices_list[i][1] - coords[i][0])
+        edges.append({"d" : ej, "edge" : counter, "face": face})
+        counter += 1
+    d["tree"][face]["Perimeter"] = {"paths": [path]}
+    d["tree"][face]["Cuts"] = {"paths": []}
+    path += "Z"
     sub = ET.SubElement(doc, "g")
     sub.attrib["data-name"] = face
     sub.attrib["id"] = face
     p = ET.SubElement(sub, "path")
     p.attrib["d"] = path
-f = open('sample.svg', 'w')
-f.write(ET.tostring(doc))
-f.close()
+#width = str(updates[0]["message"]["parameters"][7]["message"]["expression"])
+#l = width.split(" ")
+#tabsize = float(l[0]) * 25.4 
+tabnum = int((str(updates[0]["message"]["parameters"][4]["message"]["expression"])))
+d["joints"]["Joint1"]["joint_parameters"] = {"joint_type": "Box",
+                                            "joint_align": "Inside",
+                                            "fit": "Clearance",
+                                            "tabsize": length / (2 * tabnum - 1),
+                                            "tabspace": length / (2 * tabnum - 1),
+                                            "tabnum": tabnum - 1,
+                                            "boltsize": "M0",
+                                            "boltspace": 0,
+                                            "boltnum": 0,
+                                            "boltlength": 0}
+d["edge_data"] = dict()
+d["edge_data"]["edges"] = edges
+d["edge_data"]["viewBox"] = "0 0 600 400"
+d["joint_index"] = 0
 
-# coords = [(np.array([1,2]), np.array([1,4])), (np.array([1,4]), np.array([3,4])), (np.array([3,2]), np.array([1,2])), (np.array([3,4]), np.array([3,2]))]
+
+
+meta = ET.SubElement(doc, "metadata")
+laser = ET.SubElement(meta, "laserassistant")
+laser.attrib["model"] = str(d).replace("\'", "\"")
+
+svg = open('sample.svg', 'w')
+svg.write(ET.tostring(doc))
+svg.close()
+
 
 '''
-idea:
-Go through each part
-Find the common height
-Make a auto layout feature with the common height
-Call it on the thing
-Get updated body details
-Get all faces with a normal of 001 or 00-1
-Then we can get the lengths of each edge of the faces
-then use svgpathtools to make the svg
+I think nodeids change every time we make a request, so can't simply just use partquery
 
 
-ALL MEASUREMENTS IN BODY DETAILS ARE IN METERS
-    Find a way to rescale this
+# unsuppress the laser joint
+features = c.get_features(did, wid, eid)
+f = features.json()
 
-questions:
-is it safe to assume that the "height" of all the parts will be the same - so when they laser cut, it'll be uniform?
-    will be one of the assumptions im using (might change later)
-
-extract_metadata -> look at the metadata format
+updates = []
+for i in range(len(f["features"])):
+    if f["features"][i]["message"]["featureType"] == "laserJoint":
+        f["features"][i]["message"]["suppressed"] = False
+        f["features"][i]["message"]["parameters"][3]["message"]["queries"] = partquery[0]
+        updates.append(f["features"][i])
+d = dict()
+d["features"] = updates
+d["serializationVersion"] = f["serializationVersion"]
+d["sourceMicroversion"] = f["sourceMicroversion"]
+d["updateSuppressionAttributes"] = True
+c.update_feature(did, wid, eid, d)
 '''
+
+# delete autolayout
+
+fid = autolayout["feature"]["message"]["featureId"]
+c.delete_feature(did, wid, eid, fid)
+
+
 

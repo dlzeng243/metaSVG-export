@@ -198,12 +198,13 @@ class Client():
 
     def add_feature(self, did, wid, eid, payload):
         '''
-        Updates a feature for specified document / workspace / part studio.
+        Adds a feature for specified document / workspace / part studio.
 
         Args:
             - did (str): Document ID
             - wid (str): Workspace ID
             - eid (str): Element ID
+            - payload (json): Feature to be added
 
         Returns:
             - requests.Response: Onshape response data
@@ -211,18 +212,20 @@ class Client():
 
         return self._api.request('post', '/api/partstudios/d/' + did + '/w/' + wid + '/e/' + eid + '/features', body=payload)
 
-    def get_partstudio_tessellatededges(self, did, wid, eid):
+    def delete_feature(self, did, wid, eid, fid):
         '''
-        Gets the tessellation of the edges of all parts in a part studio.
+        Deletes a feature for specified document / workspace / part studio.
 
         Args:
             - did (str): Document ID
             - wid (str): Workspace ID
             - eid (str): Element ID
+            - fid (str): Feature ID
 
         Returns:
             - requests.Response: Onshape response data
         '''
 
-        return self._api.request('get', '/api/partstudios/d/' + did + '/w/' + wid + '/e/' + eid + '/tessellatededges')
+        return self._api.request('delete', '/api/partstudios/d/' + did + '/w/' + wid + '/e/' + eid + '/features/featureid/' + fid)
+
 
