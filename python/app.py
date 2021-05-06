@@ -207,7 +207,7 @@ alf = {u'message': {u'featureType': u'autolayout',
 d["feature"] = alf
 d["serializationVersion"] = f["serializationVersion"]
 d["sourceMicroversion"] = f["sourceMicroversion"]
-d["feature"]["message"]["parameters"][0]["message"]["expression"] = unicode(str(sort_lengths[0]) + " m")
+d["feature"]["message"]["parameters"][0]["message"]["expression"] = unicode(str(sort_lengths[0]) + " in")
 
 auto = c.add_feature(did, wid, eid, d)
 autolayout = auto.json()
@@ -216,12 +216,12 @@ autolayout = auto.json()
 # get parts feature of laser joint + auto layout
 parts = c.get_parts(did, wid)
 p = parts.json()
-bodies = []
+allLasers = []
 for part in p:
     pid = part["partId"]
     body = c.get_body_details(did, wid, eid, pid)
     body = body.json()
-    bodies.append(body["bodies"])
+    allLasers.append(body["bodies"])
 
 # suppress all of the laser joints
 features = c.get_features(did, wid, eid)
@@ -232,7 +232,9 @@ updates = []
 for i in range(len(f["features"])):
     if f["features"][i]["message"]["featureType"] == "laserJoint":
         f["features"][i]["message"]["suppressed"] = True
-        partquery.append(f["features"][i]["message"]["parameters"][3]["message"]["queries"])
+        partquery.append([f["features"][i]["message"]["parameters"][1]["message"]["queries"], 
+                          f["features"][i]["message"]["parameters"][2]["message"]["queries"], 
+                          f["features"][i]["message"]["parameters"][3]["message"]["queries"]])
         updates.append(f["features"][i])
 d = dict()
 d["features"] = updates
@@ -251,6 +253,175 @@ for part in p:
     body = body.json()
     body_list.append(body["bodies"])
 
+#change viewbox if need to
+# make the metadata
+doc = ET.Element('svg', style="fill:none;stroke:#ff0000;stroke-linejoin:round;stroke-width:0.1px;stroke-linecap:round;stroke-opacity:0.5", viewBox="0 0 600 480", xmlns="http://www.w3.org/2000/svg")
+
+meta = dict()
+meta["attrib"] = {"style" : "fill:none;stroke:#ff0000;stroke-linejoin:round;stroke-width:0.1px;stroke-linecap:round;stroke-opacity:0.5", "viewBox" : "0 0 600 400", "xmlns" : "http://www.w3.org/2000/svg"}
+meta["joints"] = dict()
+
+for laserCounter in range(len(updates)):
+    # unsuppress the laser joint
+    features = c.get_features(did, wid, eid)
+    f = features.json()
+
+    laseri = updates[laserCounter]
+    laseri["message"]["suppressed"] = False
+    laseri["message"]["parameters"][1]["message"]["queries"] = partquery[laserCounter][0]
+    laseri["message"]["parameters"][2]["message"]["queries"] = partquery[laserCounter][1]
+    laseri["message"]["parameters"][3]["message"]["queries"] = partquery[laserCounter][2]
+    d = dict()
+    d["features"] = [laseri]
+    d["serializationVersion"] = f["serializationVersion"]
+    d["sourceMicroversion"] = f["sourceMicroversion"]
+    d["updateSuppressionAttributes"] = True
+    c.update_feature(did, wid, eid, d)
+
+    # do everything for one laser joint between two parts
+    #
+    #
+    # get the body details of one laser joint
+    parts = c.get_parts(did, wid)
+    p = parts.json()
+    oneLaser = []
+    for part in p:
+        pid = part["partId"]
+        body = c.get_body_details(did, wid, eid, pid)
+        body = body.json()
+        oneLaser.append(body["bodies"])
+
+    # supress the laser joint
+    features = c.get_features(did, wid, eid)
+    f = features.json()
+
+    laseri = updates[laserCounter]
+    laseri["message"]["suppressed"] = True
+    d = dict()
+    d["features"] = [laseri]
+    d["serializationVersion"] = f["serializationVersion"]
+    d["sourceMicroversion"] = f["sourceMicroversion"]
+    d["updateSuppressionAttributes"] = True
+    c.update_feature(did, wid, eid, d)
+
+    # get a list of edges for each body
+    edge_list = []
+    midpoint_list = []
+    vertices_list = []
+    for body in body_list:
+        face_list = []
+        midpoints = []
+        vertices = []
+        for face in body[0]["faces"]:
+            if (abs(face["surface"]["normal"][0]) < epsilon and \
+                abs(face["surface"]["normal"][1]) < epsilon and \
+                abs(face["surface"]["normal"][2] - 1.0) < epsilon) or \
+                (abs(face["surface"]["normal"][0]) < epsilon and \
+                abs(face["surface"]["normal"][1]) < epsilon and \
+                abs(face["surface"]["normal"][2] + 1.0) < epsilon):
+                coedges = face["loops"][0]["coedges"]
+                for edge in coedges:
+                    edgeId = edge["edgeId"]
+                    for e in body[0]["edges"]:
+                        if e["id"] == edgeId:
+                            arr1 = np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4)
+                            arr2 = np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4)
+                            if edge["orientation"]:
+                                face_list.append([arr1, arr2])
+                                vertices.append(np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4))
+                            else:
+                                face_list.append([arr2, arr1])
+                                vertices.append(np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4))
+                            midpoints.append(np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4))
+                break
+        midpoint_list.append(midpoints)
+        edge_list.append(face_list)
+        vertices_list.append(vertices)
+
+    # now we have a list of edges for each body
+    # need to get coordinates for each 
+
+    coords_list = []
+    for i in range(len(edge_list)):
+        body = body_list[i]
+        edges = edge_list[i]
+        if len(edges) == 0:
+            continue
+        order_coords = [edges[0]]
+        for j in range(len(edges)):
+            for k in range(len(edges)):
+                if np.allclose(order_coords[j][1], edges[k][0]):
+                    order_coords.append(edges[k])
+                    continue
+        coords_list.append(order_coords[:len(order_coords) - 1])
+
+    i = 0
+    for body in oneLaser:
+        for face in body[0]["faces"]:
+            if (abs(face["surface"]["normal"][0]) < epsilon and \
+                abs(face["surface"]["normal"][1]) < epsilon and \
+                abs(face["surface"]["normal"][2] - 1.0) < epsilon) or \
+                (abs(face["surface"]["normal"][0]) < epsilon and \
+                abs(face["surface"]["normal"][1]) < epsilon and \
+                abs(face["surface"]["normal"][2] + 1.0) < epsilon):
+                coedges = face["loops"][0]["coedges"]
+                for edge in coedges:
+                    edgeId = edge["edgeId"]
+                    for e in body[0]["edges"]:
+                        if e["id"] == edgeId:
+                            mid = np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4)
+                            start = np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4)
+                            for j in range(len(midpoint_list[i])):
+                                mids = midpoint_list[i][j]
+                                if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
+                                    midpoint_list[i].pop(j)
+                                    break
+                            for j in range(len(vertices_list[i])):
+                                vert = vertices_list[i][j]
+                                if abs(start[0] - vert[0]) < epsilon and abs(start[1] - vert[1]) < epsilon:
+                                    vertices_list[i].pop(j)
+                                    break
+        i += 1
+
+    counter = 1
+    length = 0
+    meta["joints"]["Joint" + str(laserCounter + 1)] = dict()
+    for i in range(len(coords_list)):
+        coords = coords_list[i]
+        (a,b) = coords[0][0]
+        face = "face" + str(i+1)
+        edge = "M " + str(a) + "," + str(b) + " "
+        for j in range(1,len(coords) + 1):
+            (a,b) = coords[j % len(coords)][0]
+            ej = edge + "L " + str(a) + "," + str(b)
+            edge = "M " + str(a) + "," + str(b) + " "
+
+            # midpoint check
+            mid = np.around((coords[j-1][0] + coords[j-1][1]) / 2, 4)
+            if (len(midpoint_list[i]) == 1):
+                mids = midpoint_list[i][0]
+                if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
+                    meta["joints"]["Joint" + str(laserCounter + 1)]["edge_" + chr(i + 97)] = {"d" : ej, "edge" : counter, "face" : face}
+            elif (len(vertices_list[i]) == 2):
+                mids = np.around((vertices_list[i][0] + vertices_list[i][1]) / 2, 4)
+                if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
+                    meta["joints"]["Joint" + str(laserCounter + 1)]["edge_" + chr(i + 97)] = {"d" : ej, "edge" : counter, "face" : face}
+                    length = np.linalg.norm(vertices_list[i][1] - coords[i][0])
+            counter += 1
+
+    tabnum = int((str(updates[laserCounter]["message"]["parameters"][4]["message"]["expression"])))
+    meta["joints"]["Joint" + str(laserCounter + 1)]["joint_parameters"] = {"joint_type": "Box",
+                                                "joint_align": "Inside",
+                                                "fit": "Clearance",
+                                                "tabsize": length / (2 * tabnum - 1),
+                                                "tabspace": length / (2 * tabnum - 1),
+                                                "tabnum": tabnum - 1,
+                                                "boltsize": "M0",
+                                                "boltspace": 0,
+                                                "boltnum": 0,
+                                                "boltlength": 0}
+
+
 # get a list of edges for each body
 edge_list = []
 midpoint_list = []
@@ -260,7 +431,12 @@ for body in body_list:
     midpoints = []
     vertices = []
     for face in body[0]["faces"]:
-        if face["surface"]["normal"] == [0.0, 0.0, 1.0] or face["surface"]["normal"] == [0.0, 0.0, -1.0]:
+        if (abs(face["surface"]["normal"][0]) < epsilon and \
+            abs(face["surface"]["normal"][1]) < epsilon and \
+            abs(face["surface"]["normal"][2] - 1.0) < epsilon) or \
+            (abs(face["surface"]["normal"][0]) < epsilon and \
+            abs(face["surface"]["normal"][1]) < epsilon and \
+            abs(face["surface"]["normal"][2] + 1.0) < epsilon):
             coedges = face["loops"][0]["coedges"]
             for edge in coedges:
                 edgeId = edge["edgeId"]
@@ -287,6 +463,8 @@ coords_list = []
 for i in range(len(edge_list)):
     body = body_list[i]
     edges = edge_list[i]
+    if len(edges) == 0:
+        continue
     order_coords = [edges[0]]
     for j in range(len(edges)):
         for k in range(len(edges)):
@@ -294,52 +472,15 @@ for i in range(len(edge_list)):
                 order_coords.append(edges[k])
                 continue
     coords_list.append(order_coords[:len(order_coords) - 1])
-'''
-for i in range(len(coords_list)):
-    for j in range(len(coords_list[i])):
-        print("start " + str(coords_list[i][j][0]) + " end " + str(coords_list[i][j][1]) + "\n")'''
-
-i = 0
-for body in bodies:
-    for face in body[0]["faces"]:
-        if face["surface"]["normal"] == [0.0, 0.0, 1.0] or face["surface"]["normal"] == [0.0, 0.0, -1.0]:
-            coedges = face["loops"][0]["coedges"]
-            for edge in coedges:
-                edgeId = edge["edgeId"]
-                for e in body[0]["edges"]:
-                    if e["id"] == edgeId:
-                        mid = np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4)
-                        start = np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4)
-                        for j in range(len(midpoint_list[i])):
-                            mids = midpoint_list[i][j]
-                            if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
-                                midpoint_list[i].pop(j)
-                                break
-                        for j in range(len(vertices_list[i])):
-                            vert = vertices_list[i][j]
-                            if abs(start[0] - vert[0]) < epsilon and abs(start[1] - vert[1]) < epsilon:
-                                vertices_list[i].pop(j)
-                                break
-    i += 1
-
-#change viewbox if need to
-doc = ET.Element('svg', style="fill:none;stroke:#ff0000;stroke-linejoin:round;stroke-width:0.1px;stroke-linecap:round;stroke-opacity:0.5", viewBox="0 0 600 480", xmlns="http://www.w3.org/2000/svg")
-
-d = dict()
-d["attrib"] = {"style" : "fill:none;stroke:#ff0000;stroke-linejoin:round;stroke-width:0.1px;stroke-linecap:round;stroke-opacity:0.5", "viewBox" : "0 0 600 400", "xmlns" : "http://www.w3.org/2000/svg"}
 
 counter = 1
 edges = []
-d["tree"] = dict()
-d["joints"] = dict()
-d["joints"]["Joint1"] = dict()
-length = 0
+meta["tree"] = dict() 
 for i in range(len(coords_list)):
     coords = coords_list[i]
-
     (a,b) = coords[0][0]
     face = "face" + str(i+1)
-    d["tree"][face] = dict()
+    meta["tree"][face] = dict()
     path = "M " + str(a) + "," + str(b) + " "
     edge = path
     for j in range(1,len(coords) + 1):
@@ -347,79 +488,53 @@ for i in range(len(coords_list)):
         path += "L " + str(a) + "," + str(b) + " "
         ej = edge + "L " + str(a) + "," + str(b)
         edge = "M " + str(a) + "," + str(b) + " "
-
-        # midpoint check
-        mid = np.around((coords[j-1][0] + coords[j-1][1]) / 2, 4)
-        if (len(midpoint_list[i]) == 1):
-            mids = midpoint_list[i][0]
-            if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
-                d["joints"]["Joint1"]["edge_" + chr(i + 97)] = {"d" : ej, "edge" : counter, "face" : face}
-        elif (len(vertices_list[i]) == 2):
-            mids = np.around((vertices_list[i][0] + vertices_list[i][1]) / 2, 4)
-            if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
-                d["joints"]["Joint1"]["edge_" + chr(i + 97)] = {"d" : ej, "edge" : counter, "face" : face}
-                length = np.linalg.norm(vertices_list[i][1] - coords[i][0])
         edges.append({"d" : ej, "edge" : counter, "face": face})
         counter += 1
-    d["tree"][face]["Perimeter"] = {"paths": [path]}
-    d["tree"][face]["Cuts"] = {"paths": []}
+    meta["tree"][face]["Perimeter"] = {"paths": [path]}
+    meta["tree"][face]["Cuts"] = {"paths": []}
     path += "Z"
     sub = ET.SubElement(doc, "g")
     sub.attrib["data-name"] = face
     sub.attrib["id"] = face
     p = ET.SubElement(sub, "path")
     p.attrib["d"] = path
-#width = str(updates[0]["message"]["parameters"][7]["message"]["expression"])
-#l = width.split(" ")
-#tabsize = float(l[0]) * 25.4 
-tabnum = int((str(updates[0]["message"]["parameters"][4]["message"]["expression"])))
-d["joints"]["Joint1"]["joint_parameters"] = {"joint_type": "Box",
-                                            "joint_align": "Inside",
-                                            "fit": "Clearance",
-                                            "tabsize": length / (2 * tabnum - 1),
-                                            "tabspace": length / (2 * tabnum - 1),
-                                            "tabnum": tabnum - 1,
-                                            "boltsize": "M0",
-                                            "boltspace": 0,
-                                            "boltnum": 0,
-                                            "boltlength": 0}
-d["edge_data"] = dict()
-d["edge_data"]["edges"] = edges
-d["edge_data"]["viewBox"] = "0 0 600 400"
-d["joint_index"] = 0
+
+meta["edge_data"] = dict()
+meta["edge_data"]["edges"] = edges
+meta["edge_data"]["viewBox"] = "0 0 600 400"
+meta["joint_index"] = 0
 
 
 
-meta = ET.SubElement(doc, "metadata")
-laser = ET.SubElement(meta, "laserassistant")
-laser.attrib["model"] = str(d).replace("\'", "\"")
 
-svg = open('sample.svg', 'w')
+metaTree = ET.SubElement(doc, "metadata")
+laser = ET.SubElement(metaTree, "laserassistant")
+laser.attrib["model"] = str(meta).replace("\'", "\"")
+
+svg = open('1.svg', 'w')
 svg.write(ET.tostring(doc))
 svg.close()
 
 
-'''
-I think nodeids change every time we make a request, so can't simply just use partquery
 
 
-# unsuppress the laser joint
+# unsupress all laser joints
 features = c.get_features(did, wid, eid)
 f = features.json()
+for i in range(len(updates)):
+    # unsuppress the laser joint
+    laseri = updates[i]
+    laseri["message"]["suppressed"] = False
+    laseri["message"]["parameters"][1]["message"]["queries"] = partquery[i][0]
+    laseri["message"]["parameters"][2]["message"]["queries"] = partquery[i][1]
+    laseri["message"]["parameters"][3]["message"]["queries"] = partquery[i][2]
 
-updates = []
-for i in range(len(f["features"])):
-    if f["features"][i]["message"]["featureType"] == "laserJoint":
-        f["features"][i]["message"]["suppressed"] = False
-        f["features"][i]["message"]["parameters"][3]["message"]["queries"] = partquery[0]
-        updates.append(f["features"][i])
 d = dict()
 d["features"] = updates
 d["serializationVersion"] = f["serializationVersion"]
 d["sourceMicroversion"] = f["sourceMicroversion"]
 d["updateSuppressionAttributes"] = True
 c.update_feature(did, wid, eid, d)
-'''
 
 # delete autolayout
 
