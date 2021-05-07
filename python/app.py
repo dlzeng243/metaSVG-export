@@ -109,18 +109,18 @@ eid = raw_input('Enter element ID: ')
 # for convenience sake, will use one of my onshape documents as testing
 
 # document 1
-
+'''
 did = "342cee7fe5c2effe369c8dc3"
 wid = "1362f0d767136d7d96f8c33a"
 eid = "7d2020bde3f6f951e141da13"
-
+'''
 
 # document test1
-'''
+
 did = "a793a3e438b3a8a7859e3244"
 wid = "d66b8b4a9bb905cb4090461b"
 eid = "bdaa56060d3b9fbbd545f5e7"
-'''
+
 
 # document hexagon
 '''
@@ -147,10 +147,13 @@ length_list = []
 for body in body_list:
     length_set = set()
     for edge in body[0]["edges"]:
-        length_set.add(edge["geometry"]["length"])
+        length_set.add(round(edge["geometry"]["length"], 6))
+    print(length_set)
     length_list.append(length_set)
+print(length_list)
 for i in range(1, len(length_list)):
     length_list[0].intersection_update(length_list[i])
+print(length_list[0])
 if len(length_list[0]) == 0:
     exit
 sort_lengths = sorted(list(length_list[0]))
@@ -207,11 +210,10 @@ alf = {u'message': {u'featureType': u'autolayout',
 d["feature"] = alf
 d["serializationVersion"] = f["serializationVersion"]
 d["sourceMicroversion"] = f["sourceMicroversion"]
-d["feature"]["message"]["parameters"][0]["message"]["expression"] = unicode(str(sort_lengths[0]) + " in")
+d["feature"]["message"]["parameters"][0]["message"]["expression"] = unicode(str(sort_lengths[0]) + " m")
 
 auto = c.add_feature(did, wid, eid, d)
 autolayout = auto.json()
-
 
 # get parts feature of laser joint + auto layout
 parts = c.get_parts(did, wid)
@@ -242,16 +244,6 @@ d["serializationVersion"] = f["serializationVersion"]
 d["sourceMicroversion"] = f["sourceMicroversion"]
 d["updateSuppressionAttributes"] = True
 c.update_feature(did, wid, eid, d)
-
-# get the body details after adding in the autolayout feature
-parts = c.get_parts(did, wid)
-p = parts.json()
-body_list = []
-for part in p:
-    pid = part["partId"]
-    body = c.get_body_details(did, wid, eid, pid)
-    body = body.json()
-    body_list.append(body["bodies"])
 
 #change viewbox if need to
 # make the metadata
@@ -304,6 +296,16 @@ for laserCounter in range(len(updates)):
     d["updateSuppressionAttributes"] = True
     c.update_feature(did, wid, eid, d)
 
+    # get the body details after adding in the autolayout feature
+    parts = c.get_parts(did, wid)
+    p = parts.json()
+    body_list = []
+    for part in p:
+        pid = part["partId"]
+        body = c.get_body_details(did, wid, eid, pid)
+        body = body.json()
+        body_list.append(body["bodies"])
+
     # get a list of edges for each body
     edge_list = []
     midpoint_list = []
@@ -326,17 +328,23 @@ for laserCounter in range(len(updates)):
                         if e["id"] == edgeId:
                             arr1 = np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4)
                             arr2 = np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4)
+                            origin = (np.around(np.array(face["box"]["maxCorner"][:2]) * constant, 4) + np.around(np.array(face["box"]["minCorner"][:2]) * constant, 4)) / 2
                             if edge["orientation"]:
-                                face_list.append([arr1, arr2])
-                                vertices.append(np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4))
+                                face_list.append((arr1, arr2))
+                                vertices.append((arr1, origin, True))
                             else:
-                                face_list.append([arr2, arr1])
-                                vertices.append(np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4))
-                            midpoints.append(np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4))
+                                face_list.append((arr2, arr1))
+                                vertices.append((arr2, origin, False))
+                            midpoints.append((np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4), origin))
                 break
         midpoint_list.append(midpoints)
         edge_list.append(face_list)
         vertices_list.append(vertices)
+
+    print(midpoint_list)
+    print("\n")
+    print(vertices_list)
+    print("\n")
 
     # now we have a list of edges for each body
     # need to get coordinates for each 
@@ -369,23 +377,35 @@ for laserCounter in range(len(updates)):
                     edgeId = edge["edgeId"]
                     for e in body[0]["edges"]:
                         if e["id"] == edgeId:
-                            mid = np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4)
-                            start = np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4)
+                            origin = (np.around(np.array(face["box"]["maxCorner"][:2]) * constant, 4) + np.around(np.array(face["box"]["minCorner"][:2]) * constant, 4)) / 2
+                            mid = np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4) - origin
+                            start = np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4) - origin
+                            end = np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4) - origin
                             for j in range(len(midpoint_list[i])):
-                                mids = midpoint_list[i][j]
+                                mids = midpoint_list[i][j][0] - midpoint_list[i][j][1]
                                 if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
                                     midpoint_list[i].pop(j)
                                     break
                             for j in range(len(vertices_list[i])):
-                                vert = vertices_list[i][j]
-                                if abs(start[0] - vert[0]) < epsilon and abs(start[1] - vert[1]) < epsilon:
-                                    vertices_list[i].pop(j)
-                                    break
+                                vert = vertices_list[i][j][0] - vertices_list[i][j][1]
+                                if (vertices_list[i][j][2]):
+                                    if abs(start[0] - vert[0]) < epsilon and abs(start[1] - vert[1]) < epsilon:
+                                        vertices_list[i].pop(j)
+                                        break
+                                else:
+                                    if abs(end[0] - vert[0]) < epsilon and abs(end[1] - vert[1]) < epsilon:
+                                        vertices_list[i].pop(j)
+                                        break
+
         i += 1
 
     counter = 1
     length = 0
     meta["joints"]["Joint" + str(laserCounter + 1)] = dict()
+    print(midpoint_list)
+    print("\n")
+    print(vertices_list)
+    print("\n")
     for i in range(len(coords_list)):
         coords = coords_list[i]
         (a,b) = coords[0][0]
@@ -399,14 +419,16 @@ for laserCounter in range(len(updates)):
             # midpoint check
             mid = np.around((coords[j-1][0] + coords[j-1][1]) / 2, 4)
             if (len(midpoint_list[i]) == 1):
-                mids = midpoint_list[i][0]
-                if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
-                    meta["joints"]["Joint" + str(laserCounter + 1)]["edge_" + chr(i + 97)] = {"d" : ej, "edge" : counter, "face" : face}
+                mids = midpoint_list[i][0][0]
+                if abs(mid[0] - mids[0]) < epsilon and \
+                   abs(mid[1] - mids[1]) < epsilon:
+                    meta["joints"]["Joint" + str(laserCounter + 1)]["edge_a"] = {"d" : ej, "edge" : counter, "face" : face}
             elif (len(vertices_list[i]) == 2):
-                mids = np.around((vertices_list[i][0] + vertices_list[i][1]) / 2, 4)
-                if abs(mid[0] - mids[0]) < epsilon and abs(mid[1] - mids[1]) < epsilon:
-                    meta["joints"]["Joint" + str(laserCounter + 1)]["edge_" + chr(i + 97)] = {"d" : ej, "edge" : counter, "face" : face}
-                    length = np.linalg.norm(vertices_list[i][1] - coords[i][0])
+                mids = np.around((vertices_list[i][0][0] + vertices_list[i][1][0]) / 2, 4)
+                if abs(mid[0] - mids[0]) < epsilon and \
+                   abs(mid[1] - mids[1]) < epsilon:
+                    meta["joints"]["Joint" + str(laserCounter + 1)]["edge_b"] = {"d" : ej, "edge" : counter, "face" : face}
+                    length = max(np.linalg.norm(vertices_list[i][1][0] - coords[i][1]), np.linalg.norm(vertices_list[i][1][0] - coords[i][0]))
             counter += 1
 
     tabnum = int((str(updates[laserCounter]["message"]["parameters"][4]["message"]["expression"])))
@@ -420,16 +442,23 @@ for laserCounter in range(len(updates)):
                                                 "boltspace": 0,
                                                 "boltnum": 0,
                                                 "boltlength": 0}
+    print("\n")
 
+
+# get the body details after adding in the autolayout feature
+parts = c.get_parts(did, wid)
+p = parts.json()
+body_list = []
+for part in p:
+    pid = part["partId"]
+    body = c.get_body_details(did, wid, eid, pid)
+    body = body.json()
+    body_list.append(body["bodies"])
 
 # get a list of edges for each body
 edge_list = []
-midpoint_list = []
-vertices_list = []
 for body in body_list:
     face_list = []
-    midpoints = []
-    vertices = []
     for face in body[0]["faces"]:
         if (abs(face["surface"]["normal"][0]) < epsilon and \
             abs(face["surface"]["normal"][1]) < epsilon and \
@@ -446,15 +475,10 @@ for body in body_list:
                         arr2 = np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4)
                         if edge["orientation"]:
                             face_list.append([arr1, arr2])
-                            vertices.append(np.around(np.array(e["geometry"]["startPoint"][:2]) * constant, 4))
                         else:
                             face_list.append([arr2, arr1])
-                            vertices.append(np.around(np.array(e["geometry"]["endPoint"][:2]) * constant, 4))
-                        midpoints.append(np.around(np.array(e["geometry"]["midPoint"][:2]) * constant, 4))
             break
-    midpoint_list.append(midpoints)
     edge_list.append(face_list)
-    vertices_list.append(vertices)
 
 # now we have a list of edges for each body
 # need to get coordinates for each 
@@ -511,7 +535,7 @@ metaTree = ET.SubElement(doc, "metadata")
 laser = ET.SubElement(metaTree, "laserassistant")
 laser.attrib["model"] = str(meta).replace("\'", "\"")
 
-svg = open('1.svg', 'w')
+svg = open('2.svg', 'w')
 svg.write(ET.tostring(doc))
 svg.close()
 
@@ -540,6 +564,5 @@ c.update_feature(did, wid, eid, d)
 
 fid = autolayout["feature"]["message"]["featureId"]
 c.delete_feature(did, wid, eid, fid)
-
 
 
