@@ -1,8 +1,12 @@
-# Onshape API Key Sample Apps
+# Onshape script test
 
-Simple Node.js and Python apps to demonstrate API key usage
+To be written.
 
 ---
+
+(Cloned from Onshape-public/apikey)
+
+Simple Node.js and Python apps to demonstrate API key usage
 
 ### Getting Started
 

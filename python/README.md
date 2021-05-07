@@ -1,8 +1,10 @@
-# Python API Key Sample
+# Onshape python script
 
-Simple demonstration of getting a key and structuring API calls.
+To be written.
 
 ---
+
+(Cloned from Onshape-public/apikey)
 
 ### Local Setup
 
