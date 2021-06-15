@@ -211,6 +211,21 @@ class Client():
         '''
 
         return self._api.request('post', '/api/partstudios/d/' + did + '/w/' + wid + '/e/' + eid + '/features', body=payload)
+    def evaluate_feature(self, did, wid, eid, payload):
+        '''
+        Evaluates a feature for specified document / workspace / part studio.
+
+        Args:
+            - did (str): Document ID
+            - wid (str): Workspace ID
+            - eid (str): Element ID
+            - payload (json): Feature to be added
+
+        Returns:
+            - requests.Response: Onshape response data
+        '''
+
+        return self._api.request('post', '/api/partstudios/d/' + did + '/w/' + wid + '/e/' + eid + '/featurescript', body=payload)
 
     def delete_feature(self, did, wid, eid, fid):
         '''
