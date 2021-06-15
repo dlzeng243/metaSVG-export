@@ -22,21 +22,19 @@ wid = raw_input('Enter workspace ID: ')
 eid = raw_input('Enter element ID: ')
 '''
 
-# for convenience sake, will use one of my onshape documents as testing
-
-# document 1
+# For convenience sake, will use one of my onshape documents for testing
+# document two edges
 '''
 did = "342cee7fe5c2effe369c8dc3"
 wid = "1362f0d767136d7d96f8c33a"
 eid = "7d2020bde3f6f951e141da13"
 '''
 
-# document test1
+# document box
 
 did = "a793a3e438b3a8a7859e3244"
 wid = "d66b8b4a9bb905cb4090461b"
 eid = "bdaa56060d3b9fbbd545f5e7"
-
 
 # document hexagon
 '''
@@ -44,7 +42,6 @@ did = "f64e517b60b7be5b9e096610"
 wid = "8819fa3e5a42943b4f6d72b2"
 eid = "37cd35df347f894e04bab4c7"
 '''
-
 
 features = c.get_features(did, wid, eid)
 f = features.json()
@@ -360,7 +357,6 @@ for laserCounter in range(len(updates)):
                                                 "boltlength": 0}
     print("\n")
 
-
 # get the body details after adding in the autolayout feature
 parts = c.get_parts(did, wid)
 p = parts.json()
@@ -444,9 +440,6 @@ meta["edge_data"]["edges"] = edges
 meta["edge_data"]["viewBox"] = "0 0 600 400"
 meta["joint_index"] = 0
 
-
-
-
 metaTree = ET.SubElement(doc, "metadata")
 laser = ET.SubElement(metaTree, "laserassistant")
 laser.attrib["model"] = str(meta).replace("\'", "\"")
@@ -454,9 +447,6 @@ laser.attrib["model"] = str(meta).replace("\'", "\"")
 svg = open('2.svg', 'w')
 svg.write(ET.tostring(doc))
 svg.close()
-
-
-
 
 # unsupress all laser joints
 features = c.get_features(did, wid, eid)
@@ -480,5 +470,13 @@ c.update_feature(did, wid, eid, d)
 
 fid = autolayout["feature"]["message"]["featureId"]
 c.delete_feature(did, wid, eid, fid)
-
-
+"""
+Schedule:
+1 week understand featurescript
+2 weeks edge detection
+2 weeks non 90-degree angle
+3 weeks more joint types
+2 weeks Matt's kerf calculation
+3 weeks fabricating
+- 1 weeks buffer
+"""

@@ -1,163 +1,103 @@
-# Onshape python script
+# Onshape LaserJoint Python Script
 
-(In progress)
+## Local Setup:
+Make sure you have installed the following dependencies:  
+* Python 2 (2.7.17)  
+* pip  
+* virtualenv  
 
-First time:
-add creds.json to python folder:
+Next, run the following line:  
+-- for Linux:  
 
-{
-    "https://cad.onshape.com": {
-        "access_key": "ACCESS KEY",
-        "secret_key": "SECRET KEY"
-    }
-}
+    $ virtualenv -p /path/to/python2 env && source env/bin/activate
 
-install python2, pip, virtualenv
+-- for Windows:
 
-How to run:
-run $ virtualenv -p /path/to/python2 env && source env/bin/activate 
-    in python folder
-run $ pip install -r requirements.txt
-run python2 app.py
+    $ virtualenv -p /path/to/python2.exe env && env/Scripts/activate.bat
 
+Now, install the remaining dependencies:  
+-- for Linux:  
 
+    $ pip install -r requirements.txt
 
-ASSUMPTIONS SO FAR:
-Use laser joint featurescript
-All parts will have the same height (because laser cutting the same material)
-All parts will be rectangular
-Intersection between base and tab will be a "good fit" (meaning the side lengths will match up)
-Joints are evenly split
-No cuts on the inside
-All LaserJoints have exactly two parts
+-- for Windows:
 
-Idea:
-Go through each part
-Find the common height
-Make a auto layout feature with the common height
-Call it on the thing
-Get updated body details
-Get all faces with a normal of 001 or 00-1
-Then we can get the lengths of each edge of the faces
-Then construct the faces
-
-Notes:
-ALL MEASUREMENTS IN BODY DETAILS ARE IN METERS
-    Find a way to rescale this
-
-Functions that might be useful:
-PARTS - body details (get information about lengths and stuff)
-PARTS - get parts (get parts id)
-
-PARTSTUDIO - get features (get laser cut info)
-PARTSTUDIO - update feature (suppress)
-PARTSTUDIO - add feature (add the autolayout)
-PARTSTUDIO - delete feature
-
-ELEMENTS - get configuration?
-
-DRAWINGS - get translation format?
-
-there's a feature script to autolayout - maybe try using it to get info?
-https://www.youtube.com/watch?v=YPoJ484-7tI&t=1s
-
-check if the body details are different with and without the laser cut (they are very different)
-
-
-
-Possible useful links:
-https://cad.onshape.com/FsDoc/tutorials/create-a-slot-feature.html
-https://forum.onshape.com/discussion/5528/evaluate-featurescript-request-returns-empty-btfsvaluearray-instead-of-face
-https://forum.onshape.com/discussion/7544/execute-featurescript-using-api-and-python
-
-
-
----
-
-(Cloned from Onshape-public/apikey)
-
-### Local Setup
-
-Install the dependencies:
-
-* Python 2 (2.7.9+)
-* pip
-* virtualenv
-
-Then, from this folder:
-
---for Linux:
-```sh
-$ virtualenv -p /path/to/python2 env && source env/bin/activate
-```
-
---for Windows:
-```sh
-$ virtualenv -p /path/to/python2.exe env && env/Scripts/activate.bat
-```
-References:
-
-* https://stackoverflow.com/questions/8921188/issue-with-virtualenv-cannot-activate
-* https://virtualenv.pypa.io/en/stable/userguide/#activate-script
-
-You can now install the needed Python packages:
-
---for Linux:
-```sh
-$ pip install -r requirements.txt
-```
-
---for Windows:
-```sh
-$ pip install -r requirements-win.txt
-```
-
-The windows-specific requirements file encompasses libraries that work for Win-OS
-
-References:
-* https://pypi.python.org/pypi/pyreadline
+    $ pip install -r requirements-win.txt
 
 To exit the virtual environment at any time, simply type `deactivate`.
 
-### Running the App
+## Running the Script
 
-Create a `creds.json` file in the root project directory, with the following format:
+Create a creds.json with the following format:
 
-```json
-{
-    "https://cad.onshape.com": {
-        "access_key": "ACCESS KEY",
-        "secret_key": "SECRET KEY"
+    {  
+        "https://cad.onshape.com": {  
+            "access_key": "ACCESS KEY",  
+            "secret_key": "SECRET KEY"  
+        }  
     }
-}
-```
 
-Just replace "ACCESS KEY" and "SECRET KEY" with the values you got from the
-developer portal. To test on other stacks, you'll create another object in the file,
-with credentials for that specific stack.
+Replace "ACCESS KEY" and "SECRET KEY" with the values OnShape gives you in the developer portal.
 
-To run the basic application:
 
-```sh
-$ python app.py
-```
+How to run:  
 
-To print an STL representation of a given part studio to the console:
+    $ python2 app.py  
 
-```sh
-$ python exportstl.py
-```
+## Notes about the script
 
-If you want to specify a different stack to test on, simply go into the file you're running and
-change the `stack` parameter on this line:
+## ASSUMPTIONS MADE SO FAR:  
+User uses the laser joint featurescript (https://cad.onshape.com/documents/578830e4e4b0e65410f9c34e/v/a86eb3c2ef0f3e5e88710cc9/e/7af109b2f1cead90850525ae)  
+All parts will have the same height (because we're laser cutting the same material)  
+All parts will be rectangular (odd / even parity for computing which edges correspond to each other)
+Intersection between base and tab will be a "good fit" (meaning the side lengths will match up)  
+Joints are evenly split  
+No cuts on the inside (normal box joints for now)  
+All LaserJoints have exactly two parts (no solution otherwise for now)  
 
-```py
-c = Client(stack='NEW STACK HERE')
-```
+## General thought process:  
+Go through each part in the OnShape document  
+Find the common height (with respect to the assumption)  
+Make an auto layout feature with the common height    
+Get updated body details  
+Get all faces with a normal of 001 or 00-1  
+Get the lengths of each edge of the faces  
+Do some math to compute which sides correspond to each other  
+Construct the SVG file
 
-### Working with API Keys
+## OnShape API additional functions:  
+ALL MEASUREMENTS IN BODY DETAILS ARE IN METERS  
+    Find a way to rescale this to pixels  
 
-For general information on our API keys and how they work, read this
-[document](https://github.com/onshape/apikey/blob/master/README.md). For general
-API support, please reach out to us at
-[api-support@onshape.com](mailto:api-support@onshape.com).
+Functions that might be useful from OnShape API:  
+PARTS - body details (get information about lengths and stuff)  
+PARTS - get parts (get parts id)  
+PARTSTUDIO - get features (get laser cut info)  
+PARTSTUDIO - update feature (suppress)  
+PARTSTUDIO - add feature (add the autolayout)  
+PARTSTUDIO - delete feature  
+ELEMENTS - get configuration?  
+DRAWINGS - get translation format?  
+
+## Other Onshape Forums stuff:
+there's a feature script to autolayout - maybe try using it to get info?  
+https://www.youtube.com/watch?v=YPoJ484-7tI&t=1s  
+
+check if the body details are different with and without the laser cut (they are very different)  
+
+Possible useful links:  
+https://cad.onshape.com/FsDoc/tutorials/create-a-slot-feature.html  
+https://forum.onshape.com/discussion/5528/evaluate-featurescript-request-returns-empty-btfsvaluearray-instead-of-face  
+https://forum.onshape.com/discussion/7544/execute-featurescript-using-api-and-python  
+
+## Stuff to be done:
+* Finish documentation / clean up code
+* Make more OnShape examples
+* Find a new way to find which edges correspond to each other in a laser joint (possibly with FeatureScript)
+* Learn how to use FeatureScript to modify the LaserJoint feature to do other types of laser joints
+* Adjust Matt's thing to take in a spreadsheet for kerfs
+* Schedule in zulip
+
+## Credits
+Credits to onshape-public/apikey for the general setup on how to use the OnShape API keys.  
+Go to https://github.com/onshape-public/apikey for more information.
