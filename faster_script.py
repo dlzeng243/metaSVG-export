@@ -9,6 +9,21 @@ import sys
 epsilon = 0.000001
 constant = 3779.5
 
+# Jim's perpendicular function
+def perpendicular(n):
+    p = np.zeros(3)
+    # set p to a vector that *definitely isn't parallel* to n:
+    if (abs(n[0]) < abs(n[1]) and abs(n[0]) < abs(n[2])):
+        p = np.array([1, 0, 0])
+    elif (abs(n[1]) < abs(n[2])):
+        p = np.array([0, 1, 0])
+    else:
+        p = np.array([0, 0, 1])
+    # make p actually perpendicular (vec is nonzero):
+    vec = p - np.dot(p, n) * n
+    p = vec / np.linalg.norm(vec)
+    return p
+
 # stacks to choose from
 stacks = {
     'cad': 'https://cad.onshape.com'
@@ -31,15 +46,23 @@ wid = "d66b8b4a9bb905cb4090461b"
 eid = "bdaa56060d3b9fbbd545f5e7"
 '''
 '''
+# 1
 did = "342cee7fe5c2effe369c8dc3"
 wid = "1362f0d767136d7d96f8c33a"
 eid = "7d2020bde3f6f951e141da13"
 '''
-
+'''
 # harder box
 did = "b3ea79d344251df6495836cc"
 wid = "37bdc8e4d3b079cb2acffc8d"
 eid = "f5ad63f423a46fabd7ae042d"
+'''
+
+# tilt
+did = "34f358b08844ead297ba74f6"
+wid = "275579ddc140dfe00b49da5e"
+eid = "745d66adff6ff8d563831f69"
+
 
 features = c.get_features(did, wid, eid)
 f = features.json()
@@ -59,7 +82,7 @@ for i in range(len(f["features"])):
         if f["features"][i]["message"]["parameters"][2]["message"]["queries"]:
             ids += f["features"][i]["message"]["parameters"][2]["message"]["queries"][0]["message"]["geometryIds"]
         if not ids or (len(ids) != 2):
-            print("Not proper LaserJoint \n")
+            print("Not proper LaserJoint1 \n")
             sys.exit()
         geomids.append(ids)
         f["features"][i]["message"]["suppressed"] = True
@@ -79,8 +102,8 @@ ASSUME ONLY TAB AND BASE
 
 parts = c.get_parts(did, wid)
 p = parts.json()
+pprint.pprint(p)
 map_parts = dict()
-partIdDict = dict()
 counter = 0
 numEdges = 0
 offsetx = round(10.0 / constant, 6)
@@ -101,19 +124,22 @@ for part in p:
             x = round(body["bodies"][0]["faces"][i]["surface"]["normal"][0], 6)
             y = round(body["bodies"][0]["faces"][i]["surface"]["normal"][1], 6)
             z = round(body["bodies"][0]["faces"][i]["surface"]["normal"][2], 6)
-            cornerx = round(body["bodies"][0]["faces"][i]["box"]["minCorner"][0], 6)
-            cornery = round(body["bodies"][0]["faces"][i]["box"]["minCorner"][1], 6)
-            cornerz = round(body["bodies"][0]["faces"][i]["box"]["minCorner"][2], 6)
-            minCorner = np.array([cornerx, cornery, cornerz])
+            # cornerx = round(body["bodies"][0]["faces"][i]["box"]["minCorner"][0], 6)
+            # cornery = round(body["bodies"][0]["faces"][i]["box"]["minCorner"][1], 6)
+            # cornerz = round(body["bodies"][0]["faces"][i]["box"]["minCorner"][2], 6)
+            n = np.array([x, y, z])
             if body["bodies"][0]["faces"][i]["orientation"]:
-                twodicts[index]["normal"] = [x, y, z]
+                twodicts[index]["normal"] = n / np.linalg.norm(n)
             else:
-                twodicts[index]["normal"] = [-1 * x, -1 * y, -1 * z]
+                twodicts[index]["normal"] = -1 * (n / np.linalg.norm(n))
+            perp = perpendicular(np.array([x, y, z]))
+            perp2 = np.cross(perp, np.array([x, y, z]))
+            perp2 = perp2 / np.linalg.norm(perp2)
             twodicts[index]["edges"] = []
             twodicts[index]["2d_edges"] = []
             twodicts[index]["id"] = counter
-            axisIndex = np.nonzero(twodicts[index]["normal"])[0]
-            minCorner = np.delete(minCorner, axisIndex)
+            # minCorner = np.array([cornerx, cornery, cornerz])
+            # minCorner = np.array([np.dot(minCorner, perp2), np.dot(minCorner, perp)])
             for j in range(len(body["bodies"][0]["faces"][i]["loops"][0]["coedges"])):
                 edgeId = body["bodies"][0]["faces"][i]["loops"][0]["coedges"][j]["edgeId"]
                 orientation = body["bodies"][0]["faces"][i]["loops"][0]["coedges"][j]["orientation"]
@@ -128,28 +154,40 @@ for part in p:
                         endz = round(body["bodies"][0]["edges"][k]["geometry"]["endPoint"][2], 6)
 
                         start = np.array([startx,starty,startz])
+                        svgstart = np.array([np.dot(start, perp2), np.dot(start, perp)])
                         end = np.array([endx,endy,endz])
+                        svgend = np.array([np.dot(end, perp2), np.dot(end, perp)])
 
-                        maxx = max(np.delete(start, axisIndex)[0] - minCorner[0], maxx)
-                        maxx = max(np.delete(end, axisIndex)[0] - minCorner[0], maxx)
-                        offsety = max(np.delete(start, axisIndex)[1] - minCorner[1], offsety)
-                        offsety = max(np.delete(end, axisIndex)[1] - minCorner[1], offsety)
-
-                        svgstart = (np.delete(start, axisIndex) - minCorner + np.array([offsetx, round(10.0 / constant, 6)]))
-                        svgend =  np.delete(end, axisIndex) - minCorner + np.array([offsetx, round(10.0 / constant, 6)])
+                        # svgstart = np.absolute(svgstart - minCorner) + np.array([offsetx, round(10.0 / constant, 6)])
+                        # svgend = np.absolute(svgend - minCorner) + np.array([offsetx, round(10.0 / constant, 6)])
                         if orientation:
                             twodicts[index]["edges"].append([start, end])
                             twodicts[index]["2d_edges"].append([svgstart, svgend])
                         else:
                             twodicts[index]["edges"].append([end, start])
                             twodicts[index]["2d_edges"].append([svgend, svgstart])
+            boxx = float("inf")
+            boxy = float("inf")
+            for i in range(len(twodicts[index]["2d_edges"])):
+                boxx = min(boxx, twodicts[index]["2d_edges"][i][0][0])
+                boxy = min(boxy, twodicts[index]["2d_edges"][i][0][1])
+            for i in range(len(twodicts[index]["2d_edges"])):
+                twodicts[index]["2d_edges"][i][0][0] -= boxx
+                twodicts[index]["2d_edges"][i][1][0] -= boxx
+                twodicts[index]["2d_edges"][i][0][1] -= boxy
+                twodicts[index]["2d_edges"][i][1][1] -= boxy
+                maxx = max(maxx, twodicts[index]["2d_edges"][i][0][0])
+                offsety = max(offsety, twodicts[index]["2d_edges"][i][0][1])
+                twodicts[index]["2d_edges"][i][0][0] += offsetx
+                twodicts[index]["2d_edges"][i][1][0] += offsetx
+                twodicts[index]["2d_edges"][i][0][1] += round(10.0 / constant, 6)
+                twodicts[index]["2d_edges"][i][1][1] += round(10.0 / constant, 6)
+
             twodicts[index]["orientation"] = body["bodies"][0]["faces"][i]["orientation"]
             twodicts[index]["numEdges"] = numEdges
             index += 1
     cross0 = np.cross(twodicts[0]["2d_edges"][0][1]-twodicts[0]["2d_edges"][0][0], twodicts[0]["2d_edges"][1][1]-twodicts[0]["2d_edges"][1][0])
     cross1 = np.cross(twodicts[1]["2d_edges"][0][1]-twodicts[1]["2d_edges"][0][0], twodicts[1]["2d_edges"][1][1]-twodicts[1]["2d_edges"][1][0])
-    print(cross0)
-    print(cross1)
     if round(cross0, 4) < 0:
         for i in range(len(twodicts[0]["edges"])):
             list.reverse(twodicts[0]["edges"][i])
@@ -178,11 +216,6 @@ for i in range(len(geomids)):
 
     tabDict = map_parts[tabId]
     baseDict = map_parts[baseId]
-    axis = np.cross(np.array(tabDict[0]["normal"]), np.array(baseDict[0]["normal"]))
-    if (abs(axis[0]) < epsilon and abs(axis[1]) < epsilon and abs(axis[2]) < epsilon):
-        print("Not proper LaserJoint\n")
-        sys.exit()
-    # axis is a permutation of [0, 0, 1] if nonzero
     edge = (-1,-1)
     for j in range(2):
         for k in range(len(tabDict[j]["edges"])):
@@ -200,7 +233,7 @@ for i in range(len(geomids)):
                         (abs(checkb2[0]) < epsilon and abs(checkb2[1]) < epsilon and abs(checkb2[2]) < epsilon)):
                         edge = (j + k * 2, jb + kb * 2)
     if edge[0] < 0 or edge[1] < 0:
-        print("Not proper LaserJoint \n")
+        print("Not proper LaserJoint3 \n")
         sys.exit()
     laserEdges.append(edge)
 print(laserEdges)
@@ -216,8 +249,6 @@ meta["joints"] = dict()
 for i in range(len(laserEdges)):
     a,b = laserEdges[i]
     tabId, baseId = geomids[i]
-    partIdDict[tabId] = True
-    partIdDict[baseId] = True
     indexT0 = a % 2
     indexT1 = a // 2
     indexB0 = b % 2
@@ -237,6 +268,9 @@ for i in range(len(laserEdges)):
                                                       "face" : "face" + str(map_parts[baseId][indexB0]["id"] + 1)}
     length = max(abs(tab[1][0] - tab[0][0]), abs(tab[1][1] - tab[0][1])) * constant
     tabnum = int((str(updates[i]["message"]["parameters"][4]["message"]["expression"])))
+    tabnormal = map_parts[tabId][indexT0]["normal"]
+    basenormal = map_parts[baseId][indexB0]["normal"]
+    angle = np.arccos(np.dot(tabnormal, basenormal))
     meta["joints"]["Joint" + str(i + 1)]["joint_parameters"] = {"joint_type": "Box",
                                                 "joint_align": "Inside",
                                                 "fit": "Clearance",
@@ -246,7 +280,8 @@ for i in range(len(laserEdges)):
                                                 "boltsize": "M0",
                                                 "boltspace": 0,
                                                 "boltnum": 0,
-                                                "boltlength": 0}
+                                                "boltlength": 0,
+                                                "angle": angle}
 
 
 
@@ -286,7 +321,7 @@ metaTree = ET.SubElement(doc, "metadata")
 laser = ET.SubElement(metaTree, "laserassistant")
 laser.attrib["model"] = str(meta).replace("\'", "\"")
 
-svg = open('try4.svg', 'w')
+svg = open('try9.svg', 'w')
 svg.write(ET.tostring(doc))
 svg.close()
 
