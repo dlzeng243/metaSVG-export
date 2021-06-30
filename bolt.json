@@ -1,0 +1,126 @@
+{
+    "attrib": {
+        "style": "fill:none;stroke:#ff0000;stroke-linejoin:round;stroke-width:0.1px;stroke-linecap:round;stroke-opacity:0.5",
+        "viewBox": "0.0 0.0 639.994074 317.999571",
+        "xmlns": "http://www.w3.org/2000/svg"
+    },
+    "edge_data": {
+        "edges": [
+            {
+                "d": "M 299.997812,10.000557 L 539.996062,10.000557",
+                "edge": 5,
+                "face": "face2"
+            },
+            {
+                "d": "M 539.996062,10.000557 L 539.996062,249.998807",
+                "edge": 6,
+                "face": "face2"
+            },
+            {
+                "d": "M 539.996062,249.998807 L 299.997812,249.998807",
+                "edge": 7,
+                "face": "face2"
+            },
+            {
+                "d": "M 299.997812,249.998807 L 299.997812,10.000557",
+                "edge": 8,
+                "face": "face2"
+            },
+            {
+                "d": "M 249.998807,297.998457 L 10.000557,297.998457",
+                "edge": 1,
+                "face": "face1"
+            },
+            {
+                "d": "M 10.000557,297.998457 L 10.000557,10.000557",
+                "edge": 2,
+                "face": "face1"
+            },
+            {
+                "d": "M 10.000557,10.000557 L 249.998807,10.000557",
+                "edge": 3,
+                "face": "face1"
+            },
+            {
+                "d": "M 249.998807,10.000557 L 249.998807,297.998457",
+                "edge": 4,
+                "face": "face1"
+            }
+        ],
+        "viewBox": "0 0 639.994074 317.999571"
+    },
+    "joint_index": 1,
+    "joints": {
+        "Joint1": {
+            "edge_a": {
+                "d": "M 10.000557,10.000557 L 249.998807,10.000557",
+                "edge": 3,
+                "face": "face1"
+            },
+            "edge_b": {
+                "d": "M 299.997812,10.000557 L 539.996062,10.000557",
+                "edge": 5,
+                "face": "face2"
+            },
+            "joint_parameters": {
+                "angle": 1.5707963267948966,
+                "boltlength": 0,
+                "boltnum": 0,
+                "boltsize": "M0",
+                "boltspace": 0,
+                "fit": "Clearance",
+                "joint_align": "Inside",
+                "joint_type": "Box",
+                "tabnum": 11,
+                "tabsize": 10.43470652173913,
+                "tabspace": 10.43470652173913
+            }
+        },
+        "Joint0": {
+            "edge_a": {
+                "d": "M 249.998807,297.998457 L 10.000557000000015,297.998457",
+                "edge": 1,
+                "face": "face1"
+            },
+            "edge_b": {
+                "d": "M 539.996062,249.998807 L 299.997812,249.998807",
+                "edge": 7,
+                "face": "face2"
+            },
+            "joint_parameters": {
+                "joint_type": "Bolt",
+                "joint_align": "Inside",
+                "fit": "Clearance",
+                "tabsize": 10,
+                "tabspace": 20,
+                "tabnum": 2,
+                "boltsize": "M2.5",
+                "boltspace": 20,
+                "boltnum": 2,
+                "boltlength": 10
+            }
+        }
+    },
+    "tree": {
+        "face1": {
+            "Cuts": {
+                "paths": []
+            },
+            "Perimeter": {
+                "paths": [
+                    "M 249.998807,297.998457 L 10.000557,297.998457 L 10.000557,10.000557 L 249.998807,10.000557 L 249.998807,297.998457"
+                ]
+            }
+        },
+        "face2": {
+            "Cuts": {
+                "paths": []
+            },
+            "Perimeter": {
+                "paths": [
+                    "M 299.997812,10.000557 L 539.996062,10.000557 L 539.996062,249.998807 L 299.997812,249.998807 L 299.997812,10.000557000000015"
+                ]
+            }
+        }
+    }
+}
