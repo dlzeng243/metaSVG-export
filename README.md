@@ -49,11 +49,12 @@ How to run:
 ## ASSUMPTIONS MADE SO FAR:  
 User uses the laser joint featurescript (https://cad.onshape.com/documents/578830e4e4b0e65410f9c34e/v/a86eb3c2ef0f3e5e88710cc9/e/7af109b2f1cead90850525ae)  
 All parts will have the same height (because we're laser cutting the same material)  
-All parts will be rectangular (odd / even parity for computing which edges correspond to each other)
 Intersection between base and tab will be a "good fit" (meaning the side lengths will match up)  
 Joints are evenly split  
 No cuts on the inside (normal box joints for now)  
 All LaserJoints have exactly two parts (no solution otherwise for now)  
+Face that wants to be cut has the largest area
+Cuts in the faces have to be polygonal or circular/elliptical 
 
 ## General thought process:  
 Go through each part in the OnShape document  
