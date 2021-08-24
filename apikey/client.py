@@ -150,6 +150,21 @@ class Client():
 
         return self._api.request('get', '/api/parts/d/' + did + '/w/' + wid)
 
+    def get_sketch(self, did, wid, eid):
+        '''
+        Gets the details of the sketches for specified document / workspace / part studio.
+
+        Args:
+            - did (str): Document ID
+            - wid (str): Workspace ID
+            - eid (str): Element ID
+
+        Returns:
+            - requests.Response: Onshape response data
+        '''
+
+        return self._api.request('get', '/api/partstudios/d/' + did + '/w/' + wid + '/e/' + eid + '/sketches')
+
     def get_body_details(self, did, wid, eid, pid):
         '''
         Gets the body details of a specific part.
