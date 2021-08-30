@@ -1,0 +1,6 @@
+﻿Setting,Material,Thickness,Color,Stroke,Notes,Kerf,Box-C,Box-L,Box-I,Tab-C,Tab-L,Tab-I,Slot-C,Slot-L,Slot-I,Tslot-C,Tslot-L,Tslot-I
+plywood-fast,wood,3,#FF0000,0.001,p:100 s:15,0.05,0.05,-0.05,-0.075,0.05,-0.05,-0.1,0.2,-0.05,-0.1,0,0,0
+plywood-default,wood,3,#FF0000,0.001,p:60 s:10,0.1,,,,,,,,,,0,0,0
+acrylic-default,plastic,2,#FF0000,0.001,p:100 s:10,0.1,0.1,0,NA,0.1,0,NA,0.15,-0.1,NA,0,0,0
+mdf-default,wood,6,#FF0000,0.001,p:100 s:7,0.1,,,,,,,,,,0,0,0
+jean-mdf-HQ,wood,3,#FF0000,0.001,p:60 s:10,0.1,,,,,,,,,,0,0,0
