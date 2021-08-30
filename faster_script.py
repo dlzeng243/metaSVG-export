@@ -137,14 +137,39 @@ eid = "56e319b635b4794492166d23"
 
 # raspberry pi
 
-
+'''
 did = "2583e97f0a333a38d03fc29e"
 wid = "eb85696d78b9ca148a08977d"
 eid = "2a7422c47555a3ece3c994f1"
+'''
+# something
+'''
+did = "a7c63a8b20c4b911aa9ee0dd"
+wid = "0ff2f9dda8a0ccfbf9ba7679"
+eid = "b01cb8d18f450ea6f16185b8"
+'''
+# octogonal candle holder
+'''
+did = "da1045b9fbea9a5b3b6516c8"
+wid = "33af49ef094546773e9a5e40"
+eid = "a87ebba31cd6f918db244ce9"
+'''
+# house
+'''
+did = "cb694ed0b30f8354559273f1"
+wid = "733bb59e3d32dfa30a2e47c9"
+eid = "3616eb0cf82bed75c4f40e6e"
+'''
+
+# arcade
+
+did = "0ada0244726dbd2eccf605c4"
+wid = "74af87e822132b87fad407ce"
+eid = "4a428daee5c62a5644aef745"
 
 features = c.get_features(did, wid, eid)
 f = features.json()
-pprint.pprint(f)
+
 # box joint info
 boxIDS = []
 updatesBox = []
@@ -183,6 +208,8 @@ for i in range(len(f["features"])):
             if f["features"][i]["message"]["parameters"][4]["message"]["queries"]:
                 ids += f["features"][i]["message"]["parameters"][4]["message"]["queries"][0]["message"]["geometryIds"]
             if not ids or len(ids) != 4:
+                print(ids)
+                pprint.pprint(f["features"][i])
                 print("Not proper LaserJoint1 \n")
                 sys.exit()
             boxIDS.append(ids)
@@ -434,16 +461,23 @@ for part in p:
             index += 1
     if not twodicts[0] or not twodicts[1]:
         continue
-    cross0 = np.cross(twodicts[0]["2d_edges"][0][1]-twodicts[0]["2d_edges"][0][0], twodicts[0]["2d_edges"][1][1]-twodicts[0]["2d_edges"][1][0])
-    cross1 = np.cross(twodicts[1]["2d_edges"][0][1]-twodicts[1]["2d_edges"][0][0], twodicts[1]["2d_edges"][1][1]-twodicts[1]["2d_edges"][1][0])
-    if round(cross0, 4) < 0:
+    sum0 = 0
+
+    for i in range(len(twodicts[0]["2d_edges"])):
+        sum0 += (twodicts[0]["2d_edges"][i][1][0] - twodicts[0]["2d_edges"][i][0][0]) * (twodicts[0]["2d_edges"][i][1][1] + twodicts[0]["2d_edges"][i][0][1])
+    sum1 = 0
+    for i in range(len(twodicts[1]["2d_edges"])):
+        sum1 += (twodicts[1]["2d_edges"][i][1][0] - twodicts[1]["2d_edges"][i][0][0]) * (twodicts[1]["2d_edges"][i][1][1] + twodicts[1]["2d_edges"][i][0][1])
+    print(sum0)
+    print(sum1)
+    if sum0 > 0:
         for i in range(len(twodicts[0]["edges"])):
             list.reverse(twodicts[0]["edges"][i])
             list.reverse(twodicts[0]["2d_edges"][i])
         twodicts[0]["2d_edges"][1:] = twodicts[0]["2d_edges"][1:][::-1]
         twodicts[0]["edges"][1:] = twodicts[0]["edges"][1:][::-1]
 
-    if round(cross1, 4) < 0:
+    if sum1 > 0:
         for i in range(len(twodicts[1]["edges"])):
             list.reverse(twodicts[1]["edges"][i])
             list.reverse(twodicts[1]["2d_edges"][i])
@@ -635,6 +669,8 @@ for i in range(len(boxIDS)):
                             ((abs(checkb1[0]) < epsilon and abs(checkb1[1]) < epsilon and abs(checkb1[2]) < epsilon) and \
                             (abs(checkb2[0]) < epsilon and abs(checkb2[1]) < epsilon and abs(checkb2[2]) < epsilon)):
                             edge = (j + k * 2, jb + kb * 2)
+    print("box \n")
+    print(edge)
     if edge[0] < 0 or edge[1] < 0:
         print("Not proper LaserJoint3 \n")
         print(edge)
@@ -672,6 +708,7 @@ for i in range(len(tSlotIDS)):
                     ((abs(checkb1[0]) < epsilon and abs(checkb1[1]) < epsilon and abs(checkb1[2]) < epsilon) and \
                     (abs(checkb2[0]) < epsilon and abs(checkb2[1]) < epsilon and abs(checkb2[2]) < epsilon)):
                     edges.append((tDict[k]["edges"][l], k + 2 * l))
+    print("tslot \n")
     pprint.pprint(edges)
     edge = (-1,-1)
     partid = ""
@@ -731,6 +768,8 @@ for i in range(len(tabAndSlotIDS)):
                         ((abs(checkb1[0]) < epsilon and abs(checkb1[1]) < epsilon and abs(checkb1[2]) < epsilon) and \
                         (abs(checkb2[0]) < epsilon and abs(checkb2[1]) < epsilon and abs(checkb2[2]) < epsilon)):
                         edge = (j + k * 2, jb + kb * 2)
+    print("tas \n")
+    print(edge)
     if edge[0] < 0 or edge[1] < 0:
         print("Not proper TabAndBase \n")
         sys.exit()
@@ -792,7 +831,7 @@ meta = dict()
 meta["attrib"] = {"style" : "fill:none;stroke:#ff0000;stroke-linejoin:round;stroke-width:0.1px;stroke-linecap:round;stroke-opacity:0.5", "viewBox" : vb, "xmlns" : "http://www.w3.org/2000/svg"}
 meta["joints"] = dict()
 
-
+counter = 0
 for i in range(len(boxEdges)):
     a,b = boxEdges[i]
     tabId, baseId, tabedgeId, baseedgeId = boxIDS[i]
@@ -814,13 +853,14 @@ for i in range(len(boxEdges)):
                                                       "edge" : indexB1 + map_parts[baseId][indexB0]["numEdges"] + 1, 
                                                       "face" : "face" + str(map_parts[baseId][indexB0]["id"] + 1)}
     length = max(abs(tab[1][0] - tab[0][0]), abs(tab[1][1] - tab[0][1])) * constant
-    tabnum = int((str(updatesBox[i]["message"]["parameters"][6]["message"]["expression"])))
+    tabnum = int((str(updatesBox[i]["message"]["parameters"][7]["message"]["expression"])))
+    fit = (str(updatesBox[i]["message"]["parameters"][5]["message"]["value"]).lower()).capitalize()
     tabnormal = map_parts[tabId][indexT0]["normal"]
     basenormal = map_parts[baseId][indexB0]["normal"]
     angle = np.arccos(np.dot(tabnormal, basenormal))
     meta["joints"]["Joint" + str(i + 1)]["joint_parameters"] = {"joint_type": "Box",
                                                 "joint_align": "Inside",
-                                                "fit": "Clearance",
+                                                "fit": fit,
                                                 "tabsize": length / (2 * tabnum - 1),
                                                 "tabspace": length / (2 * tabnum - 1),
                                                 "tabnum": tabnum - 1,
@@ -829,7 +869,7 @@ for i in range(len(boxEdges)):
                                                 "boltnum": 0,
                                                 "boltlength": 0,
                                                 "angle": angle}
-
+counter += len(boxEdges)
 for i in range(len(tEdges)):
     a,b = tEdges[i][0]
     tabId = tEdges[i][1]
@@ -838,17 +878,17 @@ for i in range(len(tEdges)):
     indexT1 = a // 2
     indexB0 = b % 2
     indexB1 = b // 2
-    meta["joints"]["Joint" + str(i + 1)] = dict()
+    meta["joints"]["Joint" + str(counter + i + 1)] = dict()
     tab = map_parts[tabId][indexT0]["2d_edges"][indexT1]
     base = map_parts[baseId][indexB0]["2d_edges"][indexB1]
     tabEdge = "M " + str(np.around(tab[0][0] * constant, 8)) + "," + str(np.around(tab[0][1] * constant, 8)) + " L " + \
                      str(np.around(tab[1][0] * constant, 8)) + "," + str(np.around(tab[1][1] * constant, 8))
     baseEdge = "M " + str(np.around(base[0][0] * constant, 8)) + "," + str(np.around(base[0][1] * constant, 8)) + " L " + \
                      str(np.around(base[1][0] * constant, 8)) + "," + str(np.around(base[1][1] * constant, 8))
-    meta["joints"]["Joint" + str(i + 1)]["edge_a"] = {"d" : tabEdge,
+    meta["joints"]["Joint" + str(counter + i + 1)]["edge_a"] = {"d" : tabEdge,
                                                       "edge" : indexT1 + map_parts[tabId][indexT0]["numEdges"] + 1, 
                                                       "face" : "face" + str(map_parts[tabId][indexT0]["id"] + 1)}
-    meta["joints"]["Joint" + str(i + 1)]["edge_b"] = {"d" : baseEdge,
+    meta["joints"]["Joint" + str(counter + i + 1)]["edge_b"] = {"d" : baseEdge,
                                                       "edge" : indexB1 + map_parts[baseId][indexB0]["numEdges"] + 1, 
                                                       "face" : "face" + str(map_parts[baseId][indexB0]["id"] + 1)}
     length = max(abs(tab[1][0] - tab[0][0]), abs(tab[1][1] - tab[0][1])) * constant
@@ -859,7 +899,7 @@ for i in range(len(tEdges)):
     tabnormal = map_parts[tabId][indexT0]["normal"]
     basenormal = map_parts[baseId][indexB0]["normal"]
     angle = np.arccos(np.dot(tabnormal, basenormal))
-    meta["joints"]["Joint" + str(i + 1)]["joint_parameters"] = {"joint_type": "TSlot",
+    meta["joints"]["Joint" + str(counter + i + 1)]["joint_parameters"] = {"joint_type": "TSlot",
                                                 "joint_align": "Inside",
                                                 "fit": "Clearance",
                                                 "tabsize": 0,
@@ -871,7 +911,7 @@ for i in range(len(tEdges)):
                                                 "boltlength": boltlength,
                                                 "angle": angle,
                                                 "edgeSpace": edgeSpace}
-
+counter += len(tEdges)
 for i in range(len(tasEdges)):
     a,b = tasEdges[i]
     tabId, baseId, basePartId = tabAndSlotIDS[i]
@@ -879,30 +919,31 @@ for i in range(len(tasEdges)):
     indexT1 = a // 2
     indexB0 = b % 2
     indexB1 = b // 2
-    meta["joints"]["Joint" + str(i + 1)] = dict()
+    meta["joints"]["Joint" + str(counter + i + 1)] = dict()
     tab = map_parts[tabId][indexT0]["2d_edges"][indexT1]
     base = map_parts[baseId][indexB0]["2d_edges"][indexB1]
     tabEdge = "M " + str(np.around(tab[0][0] * constant, 8)) + "," + str(np.around(tab[0][1] * constant, 8)) + " L " + \
                      str(np.around(tab[1][0] * constant, 8)) + "," + str(np.around(tab[1][1] * constant, 8))
     baseEdge = "M " + str(np.around(base[0][0] * constant, 8)) + "," + str(np.around(base[0][1] * constant, 8)) + " L " + \
                      str(np.around(base[1][0] * constant, 8)) + "," + str(np.around(base[1][1] * constant, 8))
-    meta["joints"]["Joint" + str(i + 1)]["edge_a"] = {"d" : tabEdge,
+    meta["joints"]["Joint" + str(counter + i + 1)]["edge_a"] = {"d" : tabEdge,
                                                       "edge" : indexT1 + map_parts[tabId][indexT0]["numEdges"] + 1, 
                                                       "face" : "face" + str(map_parts[tabId][indexT0]["id"] + 1)}
-    meta["joints"]["Joint" + str(i + 1)]["edge_b"] = {"d" : baseEdge,
+    meta["joints"]["Joint" + str(counter + i + 1)]["edge_b"] = {"d" : baseEdge,
                                                       "edge" : indexB1 + map_parts[baseId][indexB0]["numEdges"] + 1, 
                                                       "face" : "face" + str(map_parts[baseId][indexB0]["id"] + 1)}
     length = max(abs(tab[1][0] - tab[0][0]), abs(tab[1][1] - tab[0][1])) * constant
-    tabnum = int((str(updatesTAS[i]["message"]["parameters"][4]["message"]["expression"])))
+    tabnum = int((str(updatesTAS[i]["message"]["parameters"][5]["message"]["expression"])))
     tabnormal = map_parts[tabId][indexT0]["normal"]
     basenormal = map_parts[baseId][indexB0]["normal"]
     angle = np.arccos(np.dot(tabnormal, basenormal))
+    fit = (str(updatesTAS[i]["message"]["parameters"][3]["message"]["value"]).lower()).capitalize()
     edgeOffset = 0.0
-    if updatesTAS[i]["message"]["parameters"][12]["message"]["value"]:
-        edgeOffset = readUnits(updatesTAS[i]["message"]["parameters"][13]["message"]["expression"])
-    meta["joints"]["Joint" + str(i + 1)]["joint_parameters"] = {"joint_type": "Tab-and-Slot",
+    if updatesTAS[i]["message"]["parameters"][13]["message"]["value"]:
+        edgeOffset = readUnits(updatesTAS[i]["message"]["parameters"][14]["message"]["expression"])
+    meta["joints"]["Joint" + str(counter + i + 1)]["joint_parameters"] = {"joint_type": "Tab-and-Slot",
                                                 "joint_align": "Inside",
-                                                "fit": "Clearance",
+                                                "fit": fit,
                                                 "tabsize": (length - 2 * edgeOffset) / (2 * tabnum - 1),
                                                 "tabspace": (length - 2 * edgeOffset) / (2 * tabnum - 1),
                                                 "tabnum": tabnum,
@@ -911,9 +952,9 @@ for i in range(len(tasEdges)):
                                                 "boltnum": 0,
                                                 "boltlength": 0,
                                                 "angle": angle,
-                                                "thickness": readUnits(str(updatesTAS[i]["message"]["parameters"][3]["message"]["expression"])),
+                                                "thickness": readUnits(str(updatesTAS[i]["message"]["parameters"][4]["message"]["expression"])),
                                                 "edgeOffset": edgeOffset}
-
+counter += len(tasEdges)
 for i in range(len(slotEdges)):
     a,b = slotEdges[i]
     tabId, baseId, tabedgeId, baseedgeId = slotIDS[i]
@@ -921,17 +962,17 @@ for i in range(len(slotEdges)):
     indexT1 = a // 2
     indexB0 = b % 2
     indexB1 = b // 2
-    meta["joints"]["Joint" + str(i + 1)] = dict()
+    meta["joints"]["Joint" + str(counter + i + 1)] = dict()
     tab = map_parts[tabId][indexT0]["2d_edges"][indexT1]
     base = map_parts[baseId][indexB0]["2d_edges"][indexB1]
     tabEdge = "M " + str(np.around(tab[0][0] * constant, 8)) + "," + str(np.around(tab[0][1] * constant, 8)) + " L " + \
                      str(np.around(tab[1][0] * constant, 8)) + "," + str(np.around(tab[1][1] * constant, 8))
     baseEdge = "M " + str(np.around(base[0][0] * constant, 8)) + "," + str(np.around(base[0][1] * constant, 8)) + " L " + \
                      str(np.around(base[1][0] * constant, 8)) + "," + str(np.around(base[1][1] * constant, 8))
-    meta["joints"]["Joint" + str(i + 1)]["edge_a"] = {"d" : tabEdge,
+    meta["joints"]["Joint" + str(counter + i + 1)]["edge_a"] = {"d" : tabEdge,
                                                       "edge" : indexT1 + map_parts[tabId][indexT0]["numEdges"] + 1, 
                                                       "face" : "face" + str(map_parts[tabId][indexT0]["id"] + 1)}
-    meta["joints"]["Joint" + str(i + 1)]["edge_b"] = {"d" : baseEdge,
+    meta["joints"]["Joint" + str(counter + i + 1)]["edge_b"] = {"d" : baseEdge,
                                                       "edge" : indexB1 + map_parts[baseId][indexB0]["numEdges"] + 1, 
                                                       "face" : "face" + str(map_parts[baseId][indexB0]["id"] + 1)}
     length = max(abs(tab[1][0] - tab[0][0]), abs(tab[1][1] - tab[0][1])) * constant
@@ -947,7 +988,7 @@ for i in range(len(slotEdges)):
     perp2base = np.cross(perpbase, basenormal)
     perp2base = perp2base / np.linalg.norm(perp2base)
     baseslope = np.array([np.dot(slope, perp2base), np.dot(slope, perpbase)])
-    meta["joints"]["Joint" + str(i + 1)]["joint_parameters"] = {"joint_type": "Slotted",
+    meta["joints"]["Joint" + str(counter + i + 1)]["joint_parameters"] = {"joint_type": "Slotted",
                                                 "tabSlope": list(tabslope),
                                                 "baseSlope": list(baseslope),
                                                 "percentage": float((str(updatesSlot[i]["message"]["parameters"][4]["message"]["expression"]))),
@@ -1008,7 +1049,7 @@ metaTree = ET.SubElement(doc, "metadata")
 laser = ET.SubElement(metaTree, "laserassistant")
 laser.attrib["model"] = str(meta).replace("\'", "\"")
 
-svg = open('raspberry.svg', 'w')
+svg = open('arcade.svg', 'w')
 svg.write(ET.tostring(doc))
 svg.close()
 

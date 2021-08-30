@@ -46,10 +46,10 @@ eid = "bd80ff440cc33e6e73cdfc32"
 
 # raspberry pi
 
-
-did = "939592630e92d28997eb29da"
-wid = "3ce34ba3e44b5d34438378b5"
-eid = "93d44db90466c59ec8203929"
+# birdhouse
+did = "2583e97f0a333a38d03fc29e"
+wid = "eb85696d78b9ca148a08977d"
+eid = "2a7422c47555a3ece3c994f1"
 
 features = c.get_features(did, wid, eid)
 f = features.json()
