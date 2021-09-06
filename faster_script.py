@@ -753,7 +753,7 @@ for i in range(len(slotIDS)):
         print("Not proper Slotted2 \n")
         print(tabs)
         print(bases)
-        unsuppress(updatesBox, updatesTSlot, updatesTAS, updatesSlot partQueryBox, partQueryT, partQueryTAS, partQuerySlot)
+        unsuppress(updatesBox, updatesTSlot, updatesTAS, updatesSlot, partQueryBox, partQueryT, partQueryTAS, partQuerySlot)
         sys.exit()
     slotdata[i]["intersection"] = length * constant
     
