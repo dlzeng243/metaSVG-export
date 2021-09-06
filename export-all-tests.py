@@ -70,4 +70,4 @@ run_export('laptop', did="4553f9339af206c9dbac6b64", wid="597b7587765e8d04f6a1b0
 run_export('windmill', did="029851f598e19e5b49784a9b", wid="a902a5bd9d5432b35d9b372c", eid="2a77759f7830e9bad303a87b")
 run_export('dice', did="0fc385d7050f56bc9a1adae3", wid="63eddd978595af3059316e76", eid="c3a9b1ec7ac169d26c478ced")
 run_export('tray', did="b50e40745ce6ce567e69c657", wid="85237d35c764cbc9b835ef62", eid="6868d15c5e6449716872430e")
-
+run_export('tests', did="175191ecf6dfd33fc82e76eb", wid="4b3b42dc77a0a6698a0372c5", eid="843560ba2c50135fa96a61ec")
