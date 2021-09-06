@@ -309,7 +309,7 @@ for i in range(len(f["features"])):
                 print(ids)
                 pprint.pprint(f["features"][i])
                 print("Not proper LaserJoint1 \n")
-                sys.exit()
+                sys.exit(1)
             boxIDS.append(ids)
             f["features"][i]["message"]["suppressed"] = True
         elif f["features"][i]["message"]["featureType"] == "tSlotJoint":
@@ -332,7 +332,7 @@ for i in range(len(f["features"])):
                 ids += f["features"][i]["message"]["parameters"][4]["message"]["queries"][0]["message"]["geometryIds"]
             if not ids or len(ids) != 5:
                 print("Not proper tSlotJoint1 \n")
-                sys.exit()
+                sys.exit(1)
             tSlotIDS.append(ids)
             f["features"][i]["message"]["suppressed"] = True
         elif f["features"][i]["message"]["featureType"] == "tabAndSlot":
@@ -355,7 +355,7 @@ for i in range(len(f["features"])):
                 ids += f["features"][i]["message"]["parameters"][4]["message"]["queries"][0]["message"]["geometryIds"]
             if not ids or len(ids) != 5:
                 print("Not proper TabAndSlotJoint1 \n")
-                sys.exit()
+                sys.exit(1)
             tabAndSlotIDS.append(ids)
             f["features"][i]["message"]["suppressed"] = True
 
@@ -404,7 +404,7 @@ for i in range(len(f["features"])):
                 print("Not proper Slotted1 \n")
                 print(ids)
                 unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
-                sys.exit()
+                sys.exit(1)
             slotIDS.append(ids)
             f["features"][i]["message"]["suppressed"] = True
 print(slotIDS)
@@ -754,7 +754,7 @@ for i in range(len(slotIDS)):
         print(tabs)
         print(bases)
         unsuppress(updatesBox, updatesTSlot, updatesTAS, updatesSlot, partQueryBox, partQueryT, partQueryTAS, partQuerySlot)
-        sys.exit()
+        sys.exit(1)
     slotdata[i]["intersection"] = length * constant
     
 
@@ -828,7 +828,7 @@ for i in range(len(boxIDS)):
         pprint.pprint(tabDict)
         pprint.pprint(baseDict)
         unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
-        sys.exit()
+        sys.exit(1)
     boxEdges.append(edge)
 
 
@@ -917,7 +917,7 @@ for i in range(len(tSlotIDS)):
             print("Not proper TSlotJoint3 \n")
             print(edge)
             unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
-            sys.exit()
+            sys.exit(1)
     tEdges.append((edge, tabId, baseId))
 
 # Tab and Slot joint
@@ -979,7 +979,7 @@ for i in range(len(tabAndSlotIDS)):
     if edge[0] < 0 or edge[1] < 0:
         print("Not proper TabAndBase \n")
         unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
-        sys.exit()
+        sys.exit(1)
     tasEdges.append(edge)
 
 
@@ -1022,7 +1022,7 @@ for i in range(len(slotIDS)):
         print("Not proper slotted \n")
         print(edge)
         unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
-        sys.exit()
+        sys.exit(1)
     slotEdges.append(edge)
 
 print(boxEdges)
@@ -1084,7 +1084,7 @@ for i in range(len(tEdges)):
     if tabId != tSlotIDS[i][1] or baseId != tSlotIDS[i][2]:
         print("Wrong ids for tslot")
         unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
-        sys.exit()
+        sys.exit(1)
     indexT0 = a % 2
     indexT1 = a // 2
     indexB0 = b % 2
