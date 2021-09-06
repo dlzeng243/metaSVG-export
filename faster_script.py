@@ -69,6 +69,53 @@ def readUnits(s):
         return float(string[0]) / 10.0
     return -1.0
 
+def unsuppress(box, tslot, tas, slotted, part_box, part_tslot, part_tas, part_slotted):
+    features = c.get_features(did, wid, eid)
+    f = features.json()
+
+    for i in range(len(box)):
+        # unsuppress the laser joint
+        laseri = box[i]
+        laseri["message"]["suppressed"] = False
+        laseri["message"]["parameters"][1]["message"]["queries"] = part_box[i][0]
+        laseri["message"]["parameters"][2]["message"]["queries"] = part_box[i][1]
+        laseri["message"]["parameters"][3]["message"]["queries"] = part_box[i][2]
+
+    for i in range(len(tslot)):
+        # unsuppress the laser joint
+        laseri = tslot[i]
+        laseri["message"]["suppressed"] = False
+        laseri["message"]["parameters"][0]["message"]["queries"] = part_tslot[i][0]
+        laseri["message"]["parameters"][1]["message"]["queries"] = part_tslot[i][1]
+        laseri["message"]["parameters"][2]["message"]["queries"] = part_tslot[i][2]
+        laseri["message"]["parameters"][3]["message"]["queries"] = part_tslot[i][3]
+        laseri["message"]["parameters"][4]["message"]["queries"] = part_tslot[i][4]
+
+    for i in range(len(tas)):
+        laseri = tas[i]
+        laseri["message"]["suppressed"] = False
+        laseri["message"]["parameters"][0]["message"]["queries"] = part_tas[i][0]
+        laseri["message"]["parameters"][1]["message"]["queries"] = part_tas[i][1]
+        laseri["message"]["parameters"][2]["message"]["queries"] = part_tas[i][2]
+
+    for i in range(len(slotted)):
+        laseri = slotted[i]
+        laseri["message"]["suppressed"] = False
+        laseri["message"]["parameters"][0]["message"]["queries"] = part_slotted[i][0]
+        laseri["message"]["parameters"][1]["message"]["queries"] = part_slotted[i][1]
+        laseri["message"]["parameters"][2]["message"]["queries"] = part_slotted[i][2]
+        laseri["message"]["parameters"][3]["message"]["queries"] = part_slotted[i][3]
+        laseri["message"]["parameters"][4]["message"]["queries"] = part_slotted[i][4]
+        laseri["message"]["parameters"][5]["message"]["queries"] = part_slotted[i][5]
+
+
+    d = dict()
+    d["features"] = box + tslot + tas + slotted
+    d["serializationVersion"] = f["serializationVersion"]
+    d["sourceMicroversion"] = f["sourceMicroversion"]
+    d["updateSuppressionAttributes"] = True
+    c.update_feature(did, wid, eid, d)
+
 # stacks to choose from
 stacks = {
     'cad': 'https://cad.onshape.com'
@@ -210,6 +257,12 @@ did = "b50e40745ce6ce567e69c657"
 wid = "85237d35c764cbc9b835ef62"
 eid = "6868d15c5e6449716872430e"
 '''
+# tests
+'''
+did = "175191ecf6dfd33fc82e76eb"
+wid = "4b3b42dc77a0a6698a0372c5"
+eid = "843560ba2c50135fa96a61ec"
+'''
 
 features = c.get_features(did, wid, eid)
 f = features.json()
@@ -350,6 +403,7 @@ for i in range(len(f["features"])):
             if not ids or len(ids) != 6:
                 print("Not proper Slotted1 \n")
                 print(ids)
+                unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
                 sys.exit()
             slotIDS.append(ids)
             f["features"][i]["message"]["suppressed"] = True
@@ -699,6 +753,7 @@ for i in range(len(slotIDS)):
         print("Not proper Slotted2 \n")
         print(tabs)
         print(bases)
+        unsuppress(updatesBox, updatesTSlot, updatesTAS, updatesSlot partQueryBox, partQueryT, partQueryTAS, partQuerySlot)
         sys.exit()
     slotdata[i]["intersection"] = length * constant
     
@@ -772,6 +827,7 @@ for i in range(len(boxIDS)):
         print(i)
         pprint.pprint(tabDict)
         pprint.pprint(baseDict)
+        unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
         sys.exit()
     boxEdges.append(edge)
 
@@ -860,6 +916,7 @@ for i in range(len(tSlotIDS)):
         if edge[0] < 0 or edge[1] < 0 or edge[0] == edge[1]:
             print("Not proper TSlotJoint3 \n")
             print(edge)
+            unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
             sys.exit()
     tEdges.append((edge, tabId, baseId))
 
@@ -921,6 +978,7 @@ for i in range(len(tabAndSlotIDS)):
     print(edge)
     if edge[0] < 0 or edge[1] < 0:
         print("Not proper TabAndBase \n")
+        unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
         sys.exit()
     tasEdges.append(edge)
 
@@ -963,6 +1021,7 @@ for i in range(len(slotIDS)):
     if edge[0] < 0 or edge[1] < 0:
         print("Not proper slotted \n")
         print(edge)
+        unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
         sys.exit()
     slotEdges.append(edge)
 
@@ -1024,6 +1083,7 @@ for i in range(len(tEdges)):
     baseId = tEdges[i][2]
     if tabId != tSlotIDS[i][1] or baseId != tSlotIDS[i][2]:
         print("Wrong ids for tslot")
+        unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
         sys.exit()
     indexT0 = a % 2
     indexT1 = a // 2
@@ -1209,48 +1269,18 @@ metaTree = ET.SubElement(doc, "metadata")
 laser = ET.SubElement(metaTree, "laserassistant")
 laser.attrib["model"] = str(meta).replace("\'", "\"")
 
+<<<<<<< HEAD
 svg = open(outsvg, 'w')
+=======
+svg = open('joints.svg', 'w')
+>>>>>>> 63b9562b94fd9b00675aec71ad8c6fc1285fe934
 svg.write(ET.tostring(doc))
 svg.close()
 print("Wrote '" + outsvg + "'.")
 
 
-# unsupress all laser joints
-features = c.get_features(did, wid, eid)
-f = features.json()
-for i in range(len(updatesBox)):
-    # unsuppress the laser joint
-    laseri = updatesBox[i]
-    laseri["message"]["suppressed"] = False
-    laseri["message"]["parameters"][1]["message"]["queries"] = partQueryBox[i][0]
-    laseri["message"]["parameters"][2]["message"]["queries"] = partQueryBox[i][1]
-    laseri["message"]["parameters"][3]["message"]["queries"] = partQueryBox[i][2]
 
-for i in range(len(updatesTSlot)):
-    # unsuppress the laser joint
-    laseri = updatesTSlot[i]
-    laseri["message"]["suppressed"] = False
-    laseri["message"]["parameters"][0]["message"]["queries"] = partQueryT[i][0]
-    laseri["message"]["parameters"][1]["message"]["queries"] = partQueryT[i][1]
-    laseri["message"]["parameters"][2]["message"]["queries"] = partQueryT[i][2]
-    laseri["message"]["parameters"][3]["message"]["queries"] = partQueryT[i][3]
-    laseri["message"]["parameters"][4]["message"]["queries"] = partQueryT[i][4]
-
-for i in range(len(updatesTAS)):
-    laseri = updatesTAS[i]
-    laseri["message"]["suppressed"] = False
-    laseri["message"]["parameters"][0]["message"]["queries"] = partQueryTAS[i][0]
-    laseri["message"]["parameters"][1]["message"]["queries"] = partQueryTAS[i][1]
-    laseri["message"]["parameters"][2]["message"]["queries"] = partQueryTAS[i][2]
-
-
-d = dict()
-d["features"] = updatesBox + updatesTSlot + updatesTAS
-d["serializationVersion"] = f["serializationVersion"]
-d["sourceMicroversion"] = f["sourceMicroversion"]
-d["updateSuppressionAttributes"] = True
-c.update_feature(did, wid, eid, d)
-
+unsuppress(updatesBox, updatesTSlot, updatesTAS, [], partQueryBox, partQueryT, partQueryTAS, [])
 
 
 # NEED TO ADJUST THICKNESS TO BE METERS
