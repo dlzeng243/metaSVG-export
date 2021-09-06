@@ -30,9 +30,9 @@ def run_export(basename, did, wid, eid):
 			'--output', f'{EXPORT_DIR}/{basename}.svg'
 		], stdout=log, stderr=subprocess.STDOUT)
 	if ret.returncode:
-		print(f"  Failed (return code {ret.returncode}), log is in '{basename}.log'.")
+		print(f"  Failed (return code {ret.returncode}), log is in '{EXPORT_DIR}/{basename}.log'.")
 	else:
-		print(f"  Succes. Log is in '{basename}.log'.")
+		print(f"  Success. Log is in '{EXPORT_DIR}/{basename}.log'.")
 
 
 #These haven't been added to the list yet because I am not sure what they are:
