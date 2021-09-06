@@ -1269,11 +1269,7 @@ metaTree = ET.SubElement(doc, "metadata")
 laser = ET.SubElement(metaTree, "laserassistant")
 laser.attrib["model"] = str(meta).replace("\'", "\"")
 
-<<<<<<< HEAD
 svg = open(outsvg, 'w')
-=======
-svg = open('joints.svg', 'w')
->>>>>>> 63b9562b94fd9b00675aec71ad8c6fc1285fe934
 svg.write(ET.tostring(doc))
 svg.close()
 print("Wrote '" + outsvg + "'.")
