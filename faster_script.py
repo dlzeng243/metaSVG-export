@@ -6,6 +6,22 @@ import xml.etree.ElementTree as ET
 import json
 import sys
 
+import argparse
+
+
+parser = argparse.ArgumentParser(description="Export from OnShape to metaSVG")
+parser.add_argument("--did", help="OnShape Document ID", required=True)
+parser.add_argument("--wid", help="OnShape Workspace ID", required=True)
+parser.add_argument("--eid", help="OnShape Element ID", required=True)
+parser.add_argument("--output", help="Output metaSVG", required=True)
+
+args = parser.parse_args()
+
+did = args.did
+wid = args.wid
+eid = args.eid
+outsvg = args.output
+
 epsilon = 0.00001
 constant = 1000.0
 
@@ -189,11 +205,11 @@ eid = "c3a9b1ec7ac169d26c478ced"
 '''
 
 # tray
-
+'''
 did = "b50e40745ce6ce567e69c657"
 wid = "85237d35c764cbc9b835ef62"
 eid = "6868d15c5e6449716872430e"
-
+'''
 
 features = c.get_features(did, wid, eid)
 f = features.json()
@@ -1193,9 +1209,10 @@ metaTree = ET.SubElement(doc, "metadata")
 laser = ET.SubElement(metaTree, "laserassistant")
 laser.attrib["model"] = str(meta).replace("\'", "\"")
 
-svg = open('tray2.svg', 'w')
+svg = open(outsvg, 'w')
 svg.write(ET.tostring(doc))
 svg.close()
+print("Wrote '" + outsvg + "'.")
 
 
 # unsupress all laser joints
